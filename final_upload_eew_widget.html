@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JMA EEW Widget - Secure GitHub Version</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; width: 1920px; height: 1080px; background-color: transparent; overflow: hidden; font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; }
+        #eew-container { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); display: flex; width: 1100px; height: 360px; box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.4); border: 2px solid #666; opacity: 0; transition: opacity 0.5s ease-in-out; background-color: rgba(0, 0, 0, 0.85); }
+        #eew-container.active { opacity: 1; }
+        #map-pane { width: 270px; height: 360px; background-color: #002060; position: relative; overflow: hidden; border-right: 2px solid #666; flex-shrink: 0; }
+        svg { width: 100%; height: 100%; }
+        .jma-region { fill: #757575; stroke: #444; stroke-width: 0.5px; }
+        .jma-region.alert { fill: #FFFF00; }
+        #info-pane { width: 830px; background-color: rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
+        #header { background-color: #cc0000; color: white; text-align: center; font-size: 3rem; font-weight: 900; padding: 5px 0; letter-spacing: 5px; flex-shrink: 0; }
+        #subheader { padding: 20px 40px 10px 40px; color: #ffff00; font-size: 1.6rem; font-weight: bold; flex-shrink: 0; }
+        #region-list { margin: 0 40px 20px 40px; padding-right: 15px; color: white; font-size: 2rem; font-weight: bold; line-height: 1.6; display: block; overflow-y: auto; overflow-x: hidden; height: 210px; word-break: keep-all; box-sizing: border-box; }
+        #region-list span { display: inline-block; margin-right: 18px; margin-bottom: 8px; white-space: nowrap; }
+        #region-list::-webkit-scrollbar { width: 8px; }
+        #region-list::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.1); }
+        #region-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 4px; }
+        #debug-trigger { position: absolute; top: 20px; right: 20px; width: 140px; height: 50px; background-color: #000; color: #fff; border: 2px solid #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; z-index: 9999; }
+        #debug-menu { position: absolute; top: 80px; right: 20px; width: 450px; background: rgba(0,0,0,0.9); color: white; padding: 20px; display: none; border: 1px solid #777; z-index: 9998; }
+        #debug-menu.active { display: block; }
+        .status-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #ff4444; margin-right: 8px; box-shadow: 0 0 5px #ff4444; }
+        .status-dot.connected { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
+        textarea { width: 100%; height: 60px; background: #222; color: #0f0; font-family: monospace; font-size: 11px; margin-top: 5px; }
+        .debug-btn { background: #0070c0; color: white; border: none; padding: 6px 10px; cursor: pointer; border-radius: 4px; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <div id="eew-container">
+        <div id="map-pane">
+            <div id="map-status" style="color:white; font-size:12px; text-align:center; padding-top:50%;">[Map Standby]<br>Debug 메뉴에서<br>JSON 파일을 업로드하세요.</div>
+        </div>
+        <div id="info-pane">
+            <div id="header">긴급지진속보(JMA)</div>
+            <div id="subheader"><span id="epicenter-name">어딘가</span>서 지진 발생 강한 흔들림에 주의</div>
+            <div id="region-list"></div>
+        </div>
+    </div>
+
+    <div id="debug-trigger">DEBUG MENU</div>
+    <div id="debug-menu">
+        <div style="margin-bottom:15px; padding-bottom:10px; border-bottom:1px solid #444;">
+            <strong>API 연결 상태:</strong><br>
+            <span id="ws-dot" class="status-dot"></span><span id="ws-status">대기 중...</span>
+        </div>
+        <div style="margin-bottom:15px;"><strong>1. Map Setup:</strong> <input type="file" id="map-loader" accept=".json, .geojson"></div>
+        <div style="margin-bottom:15px;">
+            <strong>2. EEW Test:</strong> <input type="file" id="file-loader" accept=".xml">
+            <textarea id="xml-input"><Report><Body><Earthquake><Hypocenter><Area><Name>能登半島沖</Name><Coordinate>+37.5+137.3-10000/</Coordinate></Area></Hypocenter></Earthquake><Warning><Pref><Name>石川県</Name><Code>9170</Code></Pref><Pref><Name>富山県</Name><Code>9160</Code></Pref></Warning></Body></Report></textarea>
+            <button class="debug-btn" id="btn-inject">Inject</button>
+        </div>
+        <button class="debug-btn" style="background:#cc0000" onclick="document.getElementById('eew-container').classList.remove('active')">Hide Widget</button>
+    </div>
+
+    <script>
+        // =========================================================================
+        // 🚨 본인의 구글 Apps Script 주소를 아래에 넣으세요! (API 키 입력 필요 없음)
+        // =========================================================================
+        const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbzPnfrVo-KliILY-YSogjcK6DqEg68vQcFeIsHl3KIdzegYmyc8nlFzpVH-wwTEYEplgw/exec";
+
+        const REGIONAL_HIERARCHY = [
+            { region: "홋카이도 지방", prefs: [ { name: "홋카이도", codes: ["9011", "9012", "9013", "9014"], sub: {"9011": "홋카이도 도오", "9012": "홋카이도 도남", "9013": "홋카이도 도북", "9014": "홋카이도 도동"} } ] },
+            { region: "도호쿠 지방", prefs: [ { name: "아오모리현", codes: ["9020"], sub: {"9020": "아오모리현"} }, { name: "이와테현", codes: ["9030"], sub: {"9030": "이와테현"} }, { name: "미야기현", codes: ["9040"], sub: {"9040": "미야기현"} }, { name: "아키타현", codes: ["9050"], sub: {"9050": "아키타현"} }, { name: "야마가타현", codes: ["9060"], sub: {"9060": "야마가타현"} }, { name: "후쿠시마현", codes: ["9070"], sub: {"9070": "후쿠시마현"} } ] },
+            { region: "간토 지방", prefs: [ { name: "이바라키현", codes: ["9080"], sub: {"9080": "이바라키현"} }, { name: "도치기현", codes: ["9090"], sub: {"9090": "도치기현"} }, { name: "군마현", codes: ["9100"], sub: {"9100": "군마현"} }, { name: "사이타마현", codes: ["9110"], sub: {"9110": "사이타마현"} }, { name: "지바현", codes: ["9120"], sub: {"9120": "지바현"} }, { name: "도쿄도", codes: ["9131", "9132", "9133"], sub: {"9131": "도쿄", "9132": "이즈 제도", "9133": "오가사와라"} }, { name: "가나가와현", codes: ["9140"], sub: {"9140": "가나가와현"} } ] },
+            { region: "주부 지방", prefs: [ { name: "니이가타현", codes: ["9150"], sub: {"9150": "니이가타현"} }, { name: "도야마현", codes: ["9160"], sub: {"9160": "도야마현"} }, { name: "이시카와현", codes: ["9170"], sub: {"9170": "이시카와현"} }, { name: "후쿠이현", codes: ["9180"], sub: {"9180": "후쿠이현"} }, { name: "야마나시현", codes: ["9190"], sub: {"9190": "야마나시현"} }, { name: "나가노현", codes: ["9200"], sub: {"9200": "나가노현"} }, { name: "기후현", codes: ["9210"], sub: {"9210": "기후현"} }, { name: "시즈오카현", codes: ["9220"], sub: {"9220": "시즈오카현"} }, { name: "아이치현", codes: ["9230"], sub: {"9230": "아이치현"} } ] },
+            { region: "간사이 지방", prefs: [ { name: "미에현", codes: ["9240"], sub: {"9240": "미에현"} }, { name: "시가현", codes: ["9250"], sub: {"9250": "시가현"} }, { name: "교토부", codes: ["9260"], sub: {"9260": "교토부"} }, { name: "오사카부", codes: ["9270"], sub: {"9270": "오사카부"} }, { name: "효고현", codes: ["9280"], sub: {"9280": "효고현"} }, { name: "나라현", codes: ["9290"], sub: {"9290": "나라현"} }, { name: "와카야마현", codes: ["9300"], sub: {"9300": "와카야마현"} } ] },
+            { region: "주고쿠 지방", prefs: [ { name: "돗토리현", codes: ["9310"], sub: {"9310": "돗토리현"} }, { name: "시마네현", codes: ["9320"], sub: {"9320": "시마네현"} }, { name: "오카야마현", codes: ["9330"], sub: {"9330": "오카야마현"} }, { name: "히로시마현", codes: ["9340"], sub: {"9340": "히로시마현"} }, { name: "야마구치현", codes: ["9350"], sub: {"9350": "야마구치현"} } ] },
+            { region: "시고쿠 지방", prefs: [ { name: "도쿠시마현", codes: ["9360"], sub: {"9360": "도쿠시마현"} }, { name: "가가와현", codes: ["9370"], sub: {"9370": "가가와현"} }, { name: "에히메현", codes: ["9380"], sub: {"9380": "에히메현"} }, { name: "고치현", codes: ["9390"], sub: {"9390": "고치현"} } ] },
+            { region: "규슈 지방", prefs: [ { name: "후쿠오카현", codes: ["9400"], sub: {"9400": "후쿠오카현"} }, { name: "사가현", codes: ["9410"], sub: {"9410": "사가현"} }, { name: "나가사키현", codes: ["9420"], sub: {"9420": "나가사키현"} }, { name: "구마모토현", codes: ["9430"], sub: {"9430": "구마모토현"} }, { name: "오이타현", codes: ["9440"], sub: {"9440": "오이타현"} }, { name: "미야자키현", codes: ["9450"], sub: {"9450": "미야자키현"} }, { name: "가고시마현", codes: ["9461", "9462"], sub: {"9461": "가고시마현 본토", "9462": "아마미 지방"} } ] }
+        ];
+
+        const ISLAND_REGIONS = { "9471": "오키나와 본도", "9472": "다이토지마", "9473": "미야코지마", "9474": "야에야마" };
+
+        const wsStatusEl = document.getElementById('ws-status');
+        const wsDotEl = document.getElementById('ws-dot');
+        const eewContainer = document.getElementById('eew-container');
+        const epicenterNameEl = document.getElementById('epicenter-name');
+        const regionListEl = document.getElementById('region-list');
+        
+        let mapProjection = d3.geoIdentity(); 
+        let mapPath = d3.geoPath().projection(mapProjection);
+        let mapSvg = null, mapGroup = null, baseGeoData = null;
+
+        document.getElementById('debug-trigger').addEventListener('click', () => document.getElementById('debug-menu').classList.toggle('active'));
+        document.getElementById('btn-inject').addEventListener('click', () => processEarthquakeData(document.getElementById('xml-input').value));
+        document.getElementById('map-loader').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => { try { baseGeoData = JSON.parse(event.target.result); renderMap(baseGeoData); } catch(err) { alert("JSON 파싱 에러"); } };
+            reader.readAsText(file);
+        });
+        document.getElementById('file-loader').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (event) => { document.getElementById('xml-input').value = event.target.result; processEarthquakeData(event.target.result); };
+            reader.readAsText(file);
+        });
+
+        // =========================================================================
+        // 만능 JSONP 통신 모듈 (CORS 우회 및 통신 담당)
+        // =========================================================================
+        function requestViaGoogle(action, additionalParams = "") {
+            return new Promise((resolve, reject) => {
+                if (!GOOGLE_API_URL || GOOGLE_API_URL.includes("여기에_본인의_주소를_넣으세요")) {
+                    reject(new Error("구글 API URL이 설정되지 않았습니다."));
+                    return;
+                }
+
+                const callbackName = 'jsonp_' + Math.round(100000 * Math.random());
+                window[callbackName] = function(data) {
+                    delete window[callbackName];
+                    document.head.removeChild(script);
+                    resolve(data);
+                };
+
+                const script = document.createElement('script');
+                // API 키 없이 action 명령만 보냄!
+                script.src = `${GOOGLE_API_URL}?action=${action}&callback=${callbackName}${additionalParams}`;
+                
+                script.onerror = function() {
+                    delete window[callbackName];
+                    document.head.removeChild(script);
+                    reject(new Error("구글 서버 통신 실패 (인터넷 연결 확인)"));
+                };
+
+                document.head.appendChild(script);
+            });
+        }
+
+        async function translateEpicenter(text) {
+            try {
+                const data = await requestViaGoogle("translate", `&text=${encodeURIComponent(text)}`);
+                return data.translated || text;
+            } catch (err) {
+                console.error("번역 실패:", err);
+                return text;
+            }
+        }
+
+        // =========================================================================
+        // 안전한 WebSocket 연결 (키 노출 없음)
+        // =========================================================================
+        function updateStatus(msg, isConnected) {
+            wsStatusEl.textContent = msg;
+            if (isConnected) wsDotEl.classList.add('connected');
+            else wsDotEl.classList.remove('connected');
+        }
+
+        async function connectWebSocket() {
+            try {
+                updateStatus("구글 서버를 통해 티켓 요청 중...", false);
+                
+                // 프론트엔드에서는 API 키를 넘기지 않고, 구글 서버에 티켓만 요구
+                const data = await requestViaGoogle("getTicket");
+                
+                if (data.status === "error" || data.error) {
+                    throw new Error(data.error?.message || data.message || "API 키 설정 또는 권한(Scope) 문제");
+                }
+                
+                if (!data.ticket) {
+                    throw new Error("서버에서 티켓을 발급받지 못했습니다.");
+                }
+
+                const ws = new WebSocket(`wss://ws.api.dmdata.jp/v2/websocket?ticket=${data.ticket}`, 'dmdata.v2');
+
+                ws.onopen = () => updateStatus("✅ DMDATA 정상 연결됨", true);
+                ws.onmessage = async (event) => {
+                    const payload = JSON.parse(event.data);
+                    if (payload.type === 'ping') ws.send(JSON.stringify({ type: 'pong', pingId: payload.pingId }));
+                };
+                ws.onclose = () => { updateStatus("연결 끊김. 재시도 중...", false); setTimeout(connectWebSocket, 5000); };
+
+            } catch (err) { 
+                updateStatus(`🚨 연결 실패: ${err.message}`, false);
+                setTimeout(connectWebSocket, 10000); 
+            }
+        }
+
+        function initMap() {
+            mapSvg = d3.select("#map-pane").append("svg");
+            mapGroup = mapSvg.append("g");
+        }
+
+        function renderMap(geoData) {
+            if(!geoData) return;
+            document.getElementById('map-status').style.display = "none";
+            mapGroup.selectAll("*").remove();
+            mapProjection = d3.geoIdentity().reflectY(true).fitExtent([[10, 10], [260, 350]], geoData);
+            mapPath = d3.geoPath().projection(mapProjection);
+            mapGroup.selectAll("path.jma-region").data(geoData.features).enter().append("path").attr("d", mapPath).attr("class", "jma-region").attr("id", d => "region-" + (d.properties.code || d.properties.id));
+        }
+
+        async function processEarthquakeData(dataString) {
+            if (!dataString) return;
+            d3.selectAll(".jma-region").classed("alert", false);
+            mapGroup.selectAll(".epicenter-marker-group").remove();
+            
+            let triggeredCodes = new Set();
+            let rawEpicenterText = "미상 지역";
+            let activeFeatures = [];
+            let epicenterCoords = null;
+
+            try {
+                const cleanXml = dataString.replace(/(<\/?)[\w\-]+:/g, '$1');
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(cleanXml, "text/xml");
+                const hypocenterNode = xmlDoc.querySelector("Hypocenter Name");
+                if (hypocenterNode) rawEpicenterText = hypocenterNode.textContent;
+
+                const coordNode = xmlDoc.querySelector("Coordinate");
+                if (coordNode) {
+                    const match = coordNode.textContent.match(/([+-]\d+(?:\.\d+)?)([+-]\d+(?:\.\d+)?)/);
+                    if (match) epicenterCoords = [parseFloat(match[2]), parseFloat(match[1])];
+                }
+
+                xmlDoc.querySelectorAll("Code").forEach(node => {
+                    const code = node.textContent.trim();
+                    const selection = d3.select("#region-" + code);
+                    if (!selection.empty()) {
+                        selection.classed("alert", true);
+                        triggeredCodes.add(code);
+                        activeFeatures.push(selection.datum());
+                    }
+                });
+            } catch (e) { console.error(e); }
+
+            epicenterNameEl.textContent = "번역 중...";
+            eewContainer.classList.add('active'); 
+
+            const translatedEpicenter = await translateEpicenter(rawEpicenterText);
+            epicenterNameEl.textContent = translatedEpicenter; 
+
+            if (epicenterCoords) {
+                const markerGroup = mapGroup.append("g").attr("class", "epicenter-marker-group");
+                markerGroup.append("text").attr("class", "epicenter-marker-stroke").attr("text-anchor", "middle").attr("dominant-baseline", "central").style("fill", "none").style("stroke", "white").style("stroke-width", "1.5px").style("font-size", "22px").style("font-weight", "900").text("✕").attr("x", mapProjection(epicenterCoords)[0]).attr("y", mapProjection(epicenterCoords)[1]);
+                markerGroup.append("text").attr("class", "epicenter-marker-fill").attr("text-anchor", "middle").attr("dominant-baseline", "central").style("fill", "red").style("stroke", "none").style("font-size", "22px").style("font-weight", "900").text("✕").attr("x", mapProjection(epicenterCoords)[0]).attr("y", mapProjection(epicenterCoords)[1]);
+            }
+
+            if (activeFeatures.length > 0 && baseGeoData) {
+                const combined = { type: "FeatureCollection", features: activeFeatures };
+                mapProjection.fitExtent([[30, 30], [240, 330]], combined);
+                mapGroup.selectAll("path.jma-region").transition().duration(1000).attr("d", mapPath);
+                if (epicenterCoords) {
+                    mapGroup.selectAll(".epicenter-marker-group text").transition().duration(1000).attr("x", mapProjection(epicenterCoords)[0]).attr("y", mapProjection(epicenterCoords)[1]);
+                }
+            }
+
+            let macroList = []; let subList = [];
+            REGIONAL_HIERARCHY.forEach(block => {
+                const allCodesInRegion = block.prefs.flatMap(p => p.codes);
+                const matchedInRegion = allCodesInRegion.filter(c => triggeredCodes.has(c));
+                if (matchedInRegion.length === 0) return;
+                if (matchedInRegion.length === allCodesInRegion.length || matchedInRegion.length >= 5) {
+                    macroList.push(block.region);
+                } else {
+                    block.prefs.forEach(pref => {
+                        const matchedInPref = pref.codes.filter(c => triggeredCodes.has(c));
+                        if (matchedInPref.length === 0) return;
+                        if (matchedInPref.length === pref.codes.length) { subList.push(pref.name); } 
+                        else { matchedInPref.forEach(c => subList.push(pref.sub[c])); }
+                    });
+                }
+            });
+            for (let code in ISLAND_REGIONS) { if (triggeredCodes.has(code)) subList.push(ISLAND_REGIONS[code]); }
+
+            let displayList = [...macroList, ...subList];
+            regionListEl.innerHTML = displayList.map(r => `<span>${r}</span>`).join('');
+            
+            setTimeout(() => {
+                eewContainer.classList.remove('active');
+                if (baseGeoData) {
+                    mapProjection.fitExtent([[10, 10], [260, 350]], baseGeoData);
+                    mapGroup.selectAll("path.jma-region").transition().duration(1000).attr("d", mapPath);
+                    if (epicenterCoords) {
+                         mapGroup.selectAll(".epicenter-marker-group text").transition().duration(1000).attr("x", mapProjection(epicenterCoords)[0]).attr("y", mapProjection(epicenterCoords)[1]);
+                    }
+                }
+            }, 180000); 
+        }
+
+        initMap();
+        connectWebSocket(); 
+    </script>
+</body>
+</html>
