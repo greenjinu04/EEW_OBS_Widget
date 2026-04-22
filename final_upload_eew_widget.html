@@ -16,7 +16,7 @@
         #upper-info {
             font-family: 'a견나루', 'Noto Sans KR', sans-serif; /* 상단 자막만 a견나루 */
             position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 120px; opacity: 0; transition: opacity 0.5s ease-in-out; z-index: 10;
+            display: flex; gap: 120px; opacity: 0; z-index: 10;
         }
         #upper-info.active { opacity: 1; }
         .upper-box { text-align: left; font-weight: 200; line-height: 1.1; display: flex; flex-direction: column; gap: 8px; }
@@ -41,13 +41,13 @@
         /* ========================================= */
         /* 3. 🗺️ 하단 자막: 기존 디자인 및 지도 (가운데 정렬) */
         /* ========================================= */
-        #eew-container { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); display: flex; width: 1100px; height: 360px; box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.4); border: 2px solid #666; opacity: 0; transition: opacity 0.5s ease-in-out; background-color: rgba(0, 0, 0, 0.85); z-index: 5; }
+        #eew-container { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); display: flex; width: 1100px; height: 360px; box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.4); border: 2px solid #666; opacity: 0;  background-color: rgba(0, 0, 0, 0.85); z-index: 5; }
         #eew-container.active { opacity: 1; }
         #map-pane { width: 270px; height: 360px; background-color: #002060; position: relative; overflow: hidden; border-right: 2px solid #666; flex-shrink: 0; }
         svg { width: 100%; height: 100%; }
         
         /* D3.js 지도 지역 스타일 */
-        .jma-region { fill: #757575; stroke: #444; stroke-width: 0.5px; transition: fill 0.5s; }
+        .jma-region { fill: #757575; stroke: #444; stroke-width: 0.5px; }
         .jma-region.alert { fill: #FFFF00 !important; } /* 긴급 지역 하이라이트 */
 
         #info-pane { width: 830px; background-color: rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
@@ -276,7 +276,7 @@
             // 지도 줌 및 X 마커(레이어드) 표시
             if (features.length > 0 && baseGeoData) {
                 mapProjection.fitExtent([[30, 30], [240, 330]], { type: "FeatureCollection", features: features });
-                mapGroup.selectAll("path.jma-region").transition().duration(800).attr("d", mapPath);
+                mapGroup.selectAll("path.jma-region").attr("d", mapPath);
                 
                 const epicenterMatch = coordText.match(/([+-]\d+(?:\.\d+)?)([+-]\d+(?:\.\d+)?)/);
                 if (epicenterMatch) {
@@ -285,12 +285,12 @@
                     
                     // 외곽선용 흰색 X
                     markerGroup.append("text").attr("text-anchor", "middle").attr("dominant-baseline", "central")
-                        .style("fill", "none").style("stroke", "white").style("stroke-width", "3px").style("font-size", "40px").style("font-weight", "900")
+                        .style("fill", "none").style("stroke", "white").style("stroke-width", "3px").style("font-size", "22px").style("font-weight", "900")
                         .text("✕").attr("x", mapProjection(coords)[0]).attr("y", mapProjection(coords)[1]);
                     
                     // 속살용 빨간색 X
                     markerGroup.append("text").attr("text-anchor", "middle").attr("dominant-baseline", "central")
-                        .style("fill", "red").style("stroke", "none").style("font-size", "40px").style("font-weight", "900")
+                        .style("fill", "red").style("stroke", "none").style("font-size", "22px").style("font-weight", "900")
                         .text("✕").attr("x", mapProjection(coords)[0]).attr("y", mapProjection(coords)[1]);
                 }
             }
