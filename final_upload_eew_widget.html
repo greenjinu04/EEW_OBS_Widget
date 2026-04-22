@@ -58,8 +58,18 @@
     <script>
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbzPnfrVo-KliILY-YSogjcK6DqEg68vQcFeIsHl3KIdzegYmyc8nlFzpVH-wwTEYEplgw/exec";
 
-        // (지역 데이터 REGIONAL_HIERARCHY, ISLAND_REGIONS는 이전 코드와 동일하여 생략 - 실제 파일에는 그대로 두세요)
-        // ... 생략된 지역 데이터 ...
+        const REGIONAL_HIERARCHY = [
+            { region: "홋카이도 지방", prefs: [ { name: "홋카이도", codes: ["9011", "9012", "9013", "9014"], sub: {"9011": "홋카이도 도오", "9012": "홋카이도 도남", "9013": "홋카이도 도북", "9014": "홋카이도 도동"} } ] },
+            { region: "도호쿠 지방", prefs: [ { name: "아오모리현", codes: ["9020"], sub: {"9020": "아오모리현"} }, { name: "이와테현", codes: ["9030"], sub: {"9030": "이와테현"} }, { name: "미야기현", codes: ["9040"], sub: {"9040": "미야기현"} }, { name: "아키타현", codes: ["9050"], sub: {"9050": "아키타현"} }, { name: "야마가타현", codes: ["9060"], sub: {"9060": "야마가타현"} }, { name: "후쿠시마현", codes: ["9070"], sub: {"9070": "후쿠시마현"} } ] },
+            { region: "간토 지방", prefs: [ { name: "이바라키현", codes: ["9080"], sub: {"9080": "이바라키현"} }, { name: "도치기현", codes: ["9090"], sub: {"9090": "도치기현"} }, { name: "군마현", codes: ["9100"], sub: {"9100": "군마현"} }, { name: "사이타마현", codes: ["9110"], sub: {"9110": "사이타마현"} }, { name: "지바현", codes: ["9120"], sub: {"9120": "지바현"} }, { name: "도쿄도", codes: ["9131", "9132", "9133"], sub: {"9131": "도쿄", "9132": "이즈 제도", "9133": "오가사와라"} }, { name: "가나가와현", codes: ["9140"], sub: {"9140": "가나가와현"} } ] },
+            { region: "주부 지방", prefs: [ { name: "니이가타현", codes: ["9150"], sub: {"9150": "니이가타현"} }, { name: "도야마현", codes: ["9160"], sub: {"9160": "도야마현"} }, { name: "이시카와현", codes: ["9170"], sub: {"9170": "이시카와현"} }, { name: "후쿠이현", codes: ["9180"], sub: {"9180": "후쿠이현"} }, { name: "야마나시현", codes: ["9190"], sub: {"9190": "야마나시현"} }, { name: "나가노현", codes: ["9200"], sub: {"9200": "나가노현"} }, { name: "기후현", codes: ["9210"], sub: {"9210": "기후현"} }, { name: "시즈오카현", codes: ["9220"], sub: {"9220": "시즈오카현"} }, { name: "아이치현", codes: ["9230"], sub: {"9230": "아이치현"} } ] },
+            { region: "간사이 지방", prefs: [ { name: "미에현", codes: ["9240"], sub: {"9240": "미에현"} }, { name: "시가현", codes: ["9250"], sub: {"9250": "시가현"} }, { name: "교토부", codes: ["9260"], sub: {"9260": "교토부"} }, { name: "오사카부", codes: ["9270"], sub: {"9270": "오사카부"} }, { name: "효고현", codes: ["9280"], sub: {"9280": "효고현"} }, { name: "나라현", codes: ["9290"], sub: {"9290": "나라현"} }, { name: "와카야마현", codes: ["9300"], sub: {"9300": "와카야마현"} } ] },
+            { region: "주고쿠 지방", prefs: [ { name: "돗토리현", codes: ["9310"], sub: {"9310": "돗토리현"} }, { name: "시마네현", codes: ["9320"], sub: {"9320": "시마네현"} }, { name: "오카야마현", codes: ["9330"], sub: {"9330": "오카야마현"} }, { name: "히로시마현", codes: ["9340"], sub: {"9340": "히로시마현"} }, { name: "야마구치현", codes: ["9350"], sub: {"9350": "야마구치현"} } ] },
+            { region: "시고쿠 지방", prefs: [ { name: "도쿠시마현", codes: ["9360"], sub: {"9360": "도쿠시마현"} }, { name: "가가와현", codes: ["9370"], sub: {"9370": "가가와현"} }, { name: "에히메현", codes: ["9380"], sub: {"9380": "에히메현"} }, { name: "고치현", codes: ["9390"], sub: {"9390": "고치현"} } ] },
+            { region: "규슈 지방", prefs: [ { name: "후쿠오카현", codes: ["9400"], sub: {"9400": "후쿠오카현"} }, { name: "사가현", codes: ["9410"], sub: {"9410": "사가현"} }, { name: "나가사키현", codes: ["9420"], sub: {"9420": "나가사키현"} }, { name: "구마모토현", codes: ["9430"], sub: {"9430": "구마모토현"} }, { name: "오이타현", codes: ["9440"], sub: {"9440": "오이타현"} }, { name: "미야자키현", codes: ["9450"], sub: {"9450": "미야자키현"} }, { name: "가고시마현", codes: ["9461", "9462"], sub: {"9461": "가고시마현 본토", "9462": "아마미 지방"} } ] }
+        ];
+
+        const ISLAND_REGIONS = { "9471": "오키나와 본도", "9472": "다이토지마", "9473": "미야코지마", "9474": "야에야마" };
 
         let activeWebSocket = null;
         let isIntentionalDisconnect = false;
@@ -130,37 +140,44 @@
             }
         }
 
-        // 3. 지진 데이터 처리 (번역 비동기 처리 최적화)
+
+            
+        // 지진 데이터 처리 (번역과 시각화 로직 분리)
         async function processEarthquakeData(dataString) {
             if (!dataString) return;
-            
-            // UI 초기화 및 위젯 표시 (번역 기다리지 않고 즉시 실행)
+        
+            // 1. [즉시 실행] UI 초기화 및 위젯 활성화
             d3.selectAll(".jma-region").classed("alert", false);
             mapGroup.selectAll(".epicenter-marker-group").remove();
             eewContainer.classList.add('active'); 
-            epicenterNameEl.textContent = "감지 중..."; // 번역 전 임시 텍스트
-
+    
+            // 번역 전에는 원본 일본어 명칭을 먼저 표시 (사용자가 즉시 알 수 있도록)
+            epicenterNameEl.textContent = "분석 중..."; 
+        
             let triggeredCodes = new Set();
             let rawEpicenterText = "미상 지역";
             let epicenterCoords = null;
             let activeFeatures = [];
-
-            // XML 파싱 및 지도 하이라이트 (매우 빠름)
+        
+            // 2. [즉시 실행] XML 파싱 및 지도 좌표 추출
             try {
                 const cleanXml = dataString.replace(/(<\/?)[\w\-]+:/g, '$1');
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(cleanXml, "text/xml");
-                
+        
                 const hypocenterNode = xmlDoc.querySelector("Hypocenter Name");
-                if (hypocenterNode) rawEpicenterText = hypocenterNode.textContent;
-                
-                // 좌표 추출 및 지도 줌 (즉시 실행)
+                if (hypocenterNode) {
+                    rawEpicenterText = hypocenterNode.textContent;
+                    // 번역 전이라도 일단 일본어 지명을 즉시 노출
+                    epicenterNameEl.textContent = rawEpicenterText;
+                    }
+        
                 const coordNode = xmlDoc.querySelector("Coordinate");
                 if (coordNode) {
                     const match = coordNode.textContent.match(/([+-]\d+(?:\.\d+)?)([+-]\d+(?:\.\d+)?)/);
                     if (match) {
                         epicenterCoords = [parseFloat(match[2]), parseFloat(match[1])];
-                        drawEpicenterMarker(epicenterCoords);
+                        drawEpicenterMarker(epicenterCoords); // ✕ 마커 즉시 표시
                     }
                 }
 
@@ -174,25 +191,32 @@
                     }
                 });
                 
-                // 지도 줌 애니메이션 (즉시 실행)
+                // 3. [즉시 실행] 지도 줌 및 지역 리스트 UI 업데이트
                 if (activeFeatures.length > 0 && baseGeoData) {
                     const combined = { type: "FeatureCollection", features: activeFeatures };
                     mapProjection.fitExtent([[30, 30], [240, 330]], combined);
                     mapGroup.selectAll("path.jma-region").transition().duration(800).attr("d", mapPath);
                     if (epicenterCoords) updateMarkerPos(epicenterCoords);
                 }
-                
-                // 지역 리스트 업데이트 (즉시 실행)
-                updateRegionListUI(triggeredCodes);
+        
+                updateRegionListUI(triggeredCodes); // 하단 지역 리스트 즉시 출력
+        
+            } catch (e) { 
+                console.error("Parsing Error:", e); 
+            }
 
-            } catch (e) { console.error(e); }
-
-            // ⚡ 핵심: 번역은 별개의 비동기 흐름으로 돌림 (지도 로딩 방해 금지)
+            // 4. [백그라운드 실행] 번역 요청 (지도가 뜬 뒤에 별도로 진행)
+            // await를 사용하지 않고 .then()을 사용하여 별도 스레드처럼 작동하게 함
+            console.log("번역 요청 시작...");
             requestViaGoogle("translate", `&text=${encodeURIComponent(rawEpicenterText)}`)
                 .then(data => {
-                    epicenterNameEl.textContent = data.translated || rawEpicenterText;
+                    if (data && data.translated) {
+                        console.log("번역 완료:", data.translated);
+                        epicenterNameEl.textContent = data.translated; // 결과가 오면 텍스트만 슥 교체
+                    }
                 })
-                .catch(() => {
+                .catch(err => {
+                    console.error("번역 실패 (원본 유지):", err);
                     epicenterNameEl.textContent = rawEpicenterText;
                 });
         }
