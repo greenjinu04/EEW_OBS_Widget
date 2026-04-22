@@ -14,22 +14,20 @@
         /* 2. 📺 상단 자막: 방송국식 레이어드 자막 기법 */
         /* ========================================= */
         #upper-info {
-            font-family: 'a견나루', 'Noto Sans KR', sans-serif; /* 상단 자막만 a견나루 */
+            font-family: 'a견나루', 'Noto Sans KR', sans-serif; 
             position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
             display: flex; gap: 120px; opacity: 0; z-index: 10;
         }
         #upper-info.active { opacity: 1; }
         .upper-box { text-align: left; font-weight: 200; line-height: 1.1; display: flex; flex-direction: column; gap: 8px; }
         
-        /* CSS Grid를 이용해 두 글씨를 완벽하게 포개는 클래스 */
         .text-stack { display: grid; align-items: center; }
-        .layer-stroke, .layer-fill { grid-area: 1 / 1; } /* 두 div를 1열 1행에 배치하여 겹침 */
+        .layer-stroke, .layer-fill { grid-area: 1 / 1; } 
         
-        /* 속살(Fill)은 위로, 외곽선(Stroke)은 밑으로 */
         .layer-fill { z-index: 2; }
         .layer-stroke { 
             z-index: 1; color: #000; 
-            -webkit-text-stroke: 14px #000; /* 바깥쪽으로만 굵게 표시됨 */
+            -webkit-text-stroke: 14px #000; 
             text-shadow: 6px 8px 12px rgba(0,0,0,0.6); 
         }
         
@@ -46,9 +44,8 @@
         #map-pane { width: 270px; height: 360px; background-color: #002060; position: relative; overflow: hidden; border-right: 2px solid #666; flex-shrink: 0; }
         svg { width: 100%; height: 100%; }
         
-        /* D3.js 지도 지역 스타일 */
         .jma-region { fill: #757575; stroke: #444; stroke-width: 0.5px; }
-        .jma-region.alert { fill: #FFFF00 !important; } /* 긴급 지역 하이라이트 */
+        .jma-region.alert { fill: #FFFF00 !important; } 
 
         #info-pane { width: 830px; background-color: rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
         #header { background-color: #cc0000; color: white; text-align: center; font-size: 3rem; font-weight: 900; padding: 5px 0; letter-spacing: 5px; }
@@ -136,14 +133,17 @@
             { region: "간사이 지방", prefs: [ { name: "미에현", codes: ["9240"], sub: {"9240": "미에현"} }, { name: "시가현", codes: ["9250"], sub: {"9250": "시가현"} }, { name: "교토부", codes: ["9260"], sub: {"9260": "교토부"} }, { name: "오사카부", codes: ["9270"], sub: {"9270": "오사카부"} }, { name: "효고현", codes: ["9280"], sub: {"9280": "효고현"} }, { name: "나라현", codes: ["9290"], sub: {"9290": "나라현"} }, { name: "와카야마현", codes: ["9300"], sub: {"9300": "와카야마현"} } ] },
             { region: "주고쿠 지방", prefs: [ { name: "돗토리현", codes: ["9310"], sub: {"9310": "돗토리현"} }, { name: "시마네현", codes: ["9320"], sub: {"9320": "시마네현"} }, { name: "오카야마현", codes: ["9330"], sub: {"9330": "오카야마현"} }, { name: "히로시마현", codes: ["9340"], sub: {"9340": "히로시마현"} }, { name: "야마구치현", codes: ["9350"], sub: {"9350": "야마구치현"} } ] },
             { region: "시고쿠 지방", prefs: [ { name: "도쿠시마현", codes: ["9360"], sub: {"9360": "도쿠시마현"} }, { name: "가가와현", codes: ["9370"], sub: {"9370": "가가와현"} }, { name: "에히메현", codes: ["9380"], sub: {"9380": "에히메현"} }, { name: "고치현", codes: ["9390"], sub: {"9390": "고치현"} } ] },
-            { region: "규슈 지방", prefs: [ { name: "후쿠오카현", codes: ["9400"], sub: {"9400": "후쿠오카현"} }, { name: "사가현", codes: ["9410"], sub: {"9410": "사가현"} }, { name: "나가사키현", codes: ["9420"], sub: {"9420": "나가사키현"} }, { name: "구마모토현", codes: ["9430"], sub: {"9430": "구마모토현"} }, { name: "오이타현", codes: ["9440"], sub: {"9440": "오이타현"} }, { name: "미야자키현", codes: ["9450"], sub: {"9450": "미야자키현"} }, { name: "가고시마현", codes: ["9461", "9462"], sub: {"9461": "가고시마현 본토", "9462": "아마미 지방"} } ] }
+            { region: "규슈 지방", prefs: [ { name: "후쿠오카현", codes: ["9400"], sub: {"9400": "후쿠오카현"} }, { name: "사가현", codes: ["9410"], sub: {"9410": "사가현"} }, { name: "나가사키현", codes: ["9420"], sub: {"9420": "나가사키현"} }, { name: "구마모토현", codes: ["9430"], sub: {"9430": "구마모토현"} }, { name: "오이타현", codes: ["9440"], sub: {"9440": "오이타현"} }, { name: "미야자키현", codes: ["9450"], sub: {"9450": "미야자키현"} }, { name: "가고시마현", codes: ["9461", "9462"], sub: {"9461": "가고시마현 본토", "9462": "아마미 지방"} } ] },
+            { region: "오키나와 지방", prefs: [ { name: "오키나와현", codes: ["9471", "9472", "9473", "9474"], sub: {"9471": "오키나와 본도", "9472": "다이토지마", "9473": "미야코지마", "9474": "야에야마"} } ] }
         ];
 
-        const ISLAND_REGIONS = { "9471": "오키나와 본도", "9472": "다이토지마", "9473": "미야코지마", "9474": "야에야마" };
         // 시스템 전역 변수
         let activeWebSocket = null;
         let isIntentionalDisconnect = false;
         let baseGeoData = null;
+        
+        let EPICENTER_DICT = {}; // 진앙지 번역 딕셔너리 (41.json)
+        let REGION_DICT = {};    // 지역 번역 딕셔너리 (22.json)
 
         // DOM 요소 캐싱
         const wsStatusEl = document.getElementById('ws-status');
@@ -163,7 +163,28 @@
             mapSvg = d3.select("#map-pane").append("svg").attr("width", "100%").attr("height", "100%");
             mapGroup = mapSvg.append("g");
         }
-        window.addEventListener('load', initMap);
+        
+        // 깃허브에서 진앙지 및 지역명 동시 다운로드
+        async function loadDictionaries() {
+            try {
+                fetch('https://raw.githubusercontent.com/monggae0319/jma-lang-ko/main/src/data/earthquake/41.json')
+                    .then(res => res.json())
+                    .then(data => { EPICENTER_DICT = data; console.log("✅ 깃허브 진앙지(41.json) 로드 완료!"); })
+                    .catch(e => console.error("🚨 진앙지 JSON 로드 실패:", e));
+                
+                fetch('https://raw.githubusercontent.com/monggae0319/jma-lang-ko/main/src/data/earthquake/22.json')
+                    .then(res => res.json())
+                    .then(data => { REGION_DICT = data; console.log("✅ 깃허브 지역명(22.json) 로드 완료!"); })
+                    .catch(e => console.error("🚨 지역명 JSON 로드 실패:", e));
+            } catch (e) {
+                console.error("🚨 딕셔너리 로드 실패:", e);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            initMap();
+            loadDictionaries(); // 시작 시 1회 로드
+        });
 
         // 2. 통신 상태 업데이트
         function updateStatus(msg, isConnected) {
@@ -209,7 +230,6 @@
                 activeWebSocket.onmessage = (e) => {
                     const payload = JSON.parse(e.data);
                     if (payload.type === 'ping') activeWebSocket.send(JSON.stringify({ type: 'pong', pingId: payload.pingId }));
-                    // [여기에 실제 데이터(data) 수신 시 processEarthquakeData를 호출하는 로직 추가 가능]
                 };
             } catch (e) { 
                 updateStatus("🚨 오류: " + e.message, false); 
@@ -227,23 +247,19 @@
             upperInfo.classList.remove('active');
         }
 
-        // 5. 지진 데이터 파싱 및 UI 업데이트 (비동기 최적화)
-        // 5. 지진 데이터 파싱 및 UI 업데이트 (비동기 최적화)
+        // 5. 지진 데이터 파싱 및 UI 업데이트
         function processEarthquakeData(xmlString) {
             if (!xmlString) return;
 
-            // 위젯 즉시 팝업
             eewContainer.classList.add('active');
             upperInfo.classList.add('active');
             
-            // 🚨 [수정됨] 이전 X 마커 삭제 및 지도 색상(노란색) 초기화
             mapGroup.selectAll(".epicenter-marker-group").remove(); 
             mapGroup.selectAll(".jma-region").classed("alert", false); 
 
             const parser = new DOMParser();
             const xml = parser.parseFromString(xmlString.replace(/(<\/?)[\w\-]+:/g, '$1'), "text/xml");
 
-            // 상단 자막: 규모 및 깊이 (Stroke와 Fill 동시 업데이트)
             const mag = xml.querySelector("Magnitude")?.textContent || "0.0";
             document.getElementById('mag-stroke').textContent = "M" + mag;
             document.getElementById('mag-fill').textContent = "M" + mag;
@@ -254,15 +270,26 @@
             document.getElementById('depth-stroke').textContent = depthKm + "km";
             document.getElementById('depth-fill').textContent = depthKm + "km";
 
-            // 진원지 (번역 전 원본 노출)
-            const rawEpicenter = xml.querySelector("Hypocenter Name")?.textContent || "분석 중";
-            document.getElementById('epicenter-name').textContent = rawEpicenter;
+            const epiCodeNode = xml.querySelector("Hypocenter Area Code") || xml.querySelector("Hypocenter Code");
+            const epiNameNode = xml.querySelector("Hypocenter Area Name") || xml.querySelector("Hypocenter Name");
 
-            // 지도 영역 처리
+            let finalEpicenter = "분석 중";
+            let needsTranslation = false;
+
+            if (epiCodeNode && EPICENTER_DICT[epiCodeNode.textContent]) {
+                const matched = EPICENTER_DICT[epiCodeNode.textContent];
+                finalEpicenter = typeof matched === 'string' ? matched : (matched.ko || matched.name || matched);
+            } 
+            else if (epiNameNode) {
+                finalEpicenter = epiNameNode.textContent;
+                needsTranslation = true;
+            }
+
+            document.getElementById('epicenter-name').textContent = finalEpicenter;
+
             let triggered = new Set();
             let features = [];
             
-            // 경보 발령 지역(Code) 추출 및 하이라이트
             xml.querySelectorAll("Code").forEach(n => {
                 const code = n.textContent.trim();
                 const sel = d3.select("#region-" + code);
@@ -273,7 +300,6 @@
                 }
             });
 
-            // 지도 줌 및 X 마커(레이어드) 표시
             if (features.length > 0 && baseGeoData) {
                 mapProjection.fitExtent([[30, 30], [240, 330]], { type: "FeatureCollection", features: features });
                 mapGroup.selectAll("path.jma-region").attr("d", mapPath);
@@ -283,45 +309,70 @@
                     const coords = [parseFloat(epicenterMatch[2]), parseFloat(epicenterMatch[1])];
                     const markerGroup = mapGroup.append("g").attr("class", "epicenter-marker-group");
                     
-                    // 외곽선용 흰색 X
                     markerGroup.append("text").attr("text-anchor", "middle").attr("dominant-baseline", "central")
                         .style("fill", "none").style("stroke", "white").style("stroke-width", "3px").style("font-size", "22px").style("font-weight", "900")
                         .text("✕").attr("x", mapProjection(coords)[0]).attr("y", mapProjection(coords)[1]);
                     
-                    // 속살용 빨간색 X
                     markerGroup.append("text").attr("text-anchor", "middle").attr("dominant-baseline", "central")
                         .style("fill", "red").style("stroke", "none").style("font-size", "22px").style("font-weight", "900")
                         .text("✕").attr("x", mapProjection(coords)[0]).attr("y", mapProjection(coords)[1]);
                 }
             }
 
-            // 하단 리스트 생성
             updateRegionListUI(triggered);
 
-            // 비동기 번역 진행 (완료 시 이름만 조용히 교체)
-            requestViaGoogle("translate", `&text=${encodeURIComponent(rawEpicenter)}`)
-                .then(d => { if (d && d.translated) document.getElementById('epicenter-name').textContent = d.translated; })
-                .catch(err => console.error("번역 에러:", err));
+            if (needsTranslation && finalEpicenter !== "분석 중") {
+                requestViaGoogle("translate", `&text=${encodeURIComponent(finalEpicenter)}`)
+                    .then(d => { if (d && d.translated) document.getElementById('epicenter-name').textContent = d.translated; })
+                    .catch(err => console.error("번역 에러:", err));
+            }
         }
 
-        // 6. 지역 코드 기반 텍스트 리스트 생성
+        // 🚨 6. 지역 코드 기반 텍스트 리스트 생성 (광역 우선 정렬)
         function updateRegionListUI(codes) {
-            let list = [];
+            let listRegions = []; // 1순위: 광역 단위 (지방)
+            let listPrefs = [];   // 2순위: 도도부현 단위 (현)
+            let listAreas = [];   // 3순위: 세부 구역 (시/군/구)
+            
             if(REGIONAL_HIERARCHY.length === 0) return; 
+
+            // 22.json 딕셔너리 기반 지역명 번역 헬퍼
+            const getRegionName = (code, fallback) => {
+                if (REGION_DICT[code]) {
+                    const m = REGION_DICT[code];
+                    return typeof m === 'string' ? m : (m.ko || m.name || m);
+                }
+                return fallback; 
+            };
+
+            // 데이터를 우선 3개의 배열에 각각 나눠 담음
             REGIONAL_HIERARCHY.forEach(b => {
                 const all = b.prefs.flatMap(p => p.codes);
                 const match = all.filter(c => codes.has(c));
+                
                 if (match.length > 0) {
-                    // 해당 지방의 모든 현이 포함되거나 5개 이상이면 '지방' 단위로 묶어서 표시
-                    if (match.length === all.length || match.length >= 5) list.push(b.region);
-                    else b.prefs.forEach(p => {
-                        const mInP = p.codes.filter(c => codes.has(c));
-                        if (mInP.length === p.codes.length) list.push(p.name);
-                        else mInP.forEach(c => list.push(p.sub[c]));
-                    });
+                    if (match.length === all.length || match.length >= 5) {
+                        listRegions.push(b.region); // 1순위: 광역 담기
+                    } else {
+                        b.prefs.forEach(p => {
+                            const mInP = p.codes.filter(c => codes.has(c));
+                            if (mInP.length > 0) {
+                                if (mInP.length === p.codes.length) {
+                                    listPrefs.push(p.name); // 2순위: 도도부현 담기
+                                } else {
+                                    mInP.forEach(c => listAreas.push(getRegionName(c, p.sub[c]))); // 3순위: 세부 구역 담기
+                                }
+                            }
+                        });
+                    }
                 }
             });
-            document.getElementById('region-list').innerHTML = list.map(r => `<span>${r}</span>`).join('');
+
+            // 🚨 광역 -> 현 -> 세부 구역 순서로 배열 합치기
+            const finalSortedList = [...listRegions, ...listPrefs, ...listAreas];
+            
+            // 화면 출력
+            document.getElementById('region-list').innerHTML = finalSortedList.map(r => `<span>${r}</span>`).join('');
         }
 
         // 7. 지도 GeoJSON 렌더링
@@ -336,13 +387,12 @@
             mapProjection = d3.geoIdentity().reflectY(true).fitExtent([[10, 10], [260, 350]], data);
             mapPath = d3.geoPath().projection(mapProjection);
             
-            // 인라인 스타일 제거 (CSS 클래스로만 컨트롤)
             mapGroup.selectAll("path").data(data.features).enter().append("path")
                 .attr("d", mapPath).attr("class", "jma-region").attr("id", d => "region-" + (d.properties.code || d.properties.id));
         }
 
         // ==========================================
-        // 🚨 8. 안전한 이벤트 리스너 바인딩 (버튼 클릭 오류 해결)
+        // 🚨 8. 안전한 이벤트 리스너 바인딩
         // ==========================================
         document.getElementById('debug-trigger').addEventListener('click', function() {
             document.getElementById('debug-menu').classList.toggle('active');
