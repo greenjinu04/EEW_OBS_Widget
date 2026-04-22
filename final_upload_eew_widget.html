@@ -285,12 +285,12 @@
                     
                     // 외곽선용 흰색 X
                     markerGroup.append("text").attr("text-anchor", "middle").attr("dominant-baseline", "central")
-                        .style("fill", "none").style("stroke", "white").style("stroke-width", "3px").style("font-size", "22px").style("font-weight", "900")
+                        .style("fill", "none").style("stroke", "white").style("stroke-width", "3px").style("font-size", "40px").style("font-weight", "900")
                         .text("✕").attr("x", mapProjection(coords)[0]).attr("y", mapProjection(coords)[1]);
                     
                     // 속살용 빨간색 X
                     markerGroup.append("text").attr("text-anchor", "middle").attr("dominant-baseline", "central")
-                        .style("fill", "red").style("stroke", "none").style("font-size", "22px").style("font-weight", "900")
+                        .style("fill", "red").style("stroke", "none").style("font-size", "40px").style("font-weight", "900")
                         .text("✕").attr("x", mapProjection(coords)[0]).attr("y", mapProjection(coords)[1]);
                 }
             }
