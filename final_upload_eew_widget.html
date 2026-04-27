@@ -142,8 +142,8 @@
         let isIntentionalDisconnect = false;
         let baseGeoData = null;
         
-        let EPICENTER_DICT = {}; // 진앙지 번역 딕셔너리 (41.json)
-        let REGION_DICT = {};    // 지역 번역 딕셔너리 (22.json)
+        let EPICENTER_DICT = {}; 
+        let REGION_DICT = {};    
 
         // DOM 요소 캐싱
         const wsStatusEl = document.getElementById('ws-status');
@@ -183,7 +183,7 @@
 
         window.addEventListener('load', () => {
             initMap();
-            loadDictionaries(); // 시작 시 1회 로드
+            loadDictionaries(); 
         });
 
         // 2. 통신 상태 업데이트
@@ -204,7 +204,7 @@
             });
         }
 
-        // 4. DMDATA 웹소켓 연결
+        // 4. DMDATA 웹소켓 연결 (Data 수신 로직 추가 완료)
         async function connectWebSocket() {
             if (activeWebSocket) return;
             isIntentionalDisconnect = false;
@@ -227,13 +227,36 @@
                     }
                 };
                 
+                // 🚨 실전 속보 데이터 수신 로직
                 activeWebSocket.onmessage = (e) => {
                     const payload = JSON.parse(e.data);
-                    if (payload.type === 'ping') activeWebSocket.send(JSON.stringify({ type: 'pong', pingId: payload.pingId }));
+                    
+                    if (payload.type === 'ping') {
+                        activeWebSocket.send(JSON.stringify({ type: 'pong', pingId: payload.pingId }));
+                        return;
+                    }
+                    
+                    if (payload.type === 'data' && payload.classification === 'eew.forecast') {
+                        try {
+                            let xmlContent = "";
+                            
+                            if (payload.encoding === 'base64') {
+                                xmlContent = decodeURIComponent(escape(atob(payload.body)));
+                            } else {
+                                xmlContent = payload.body;
+                            }
+                            
+                            if (typeof xmlContent === 'string') {
+                                processEarthquakeData(xmlContent);
+                            }
+                        } catch (err) {
+                            console.error("XML 데이터 디코딩 중 오류 발생:", err);
+                        }
+                    }
                 };
             } catch (e) { 
                 updateStatus("🚨 오류: " + e.message, false); 
-                setTimeout(connectWebSocket, 10000); // 10초 후 재시도
+                setTimeout(connectWebSocket, 10000); 
             }
         }
 
@@ -247,9 +270,46 @@
             upperInfo.classList.remove('active');
         }
 
-        // 5. 지진 데이터 파싱 및 UI 업데이트
+        // 5. 지진 데이터 파싱 및 UI 업데이트 (테스트/훈련 구별 로직 추가 완료)
         function processEarthquakeData(xmlString) {
             if (!xmlString) return;
+
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(xmlString.replace(/(<\/?)[\w\-]+:/g, '$1'), "text/xml");
+
+            // ==========================================
+            // 🚨 테스트/훈련 상태(Status) 확인
+            // ==========================================
+            let isTest = false;
+            const statusNode = xml.querySelector("Status");
+            if (statusNode) {
+                const statusText = statusNode.textContent.trim();
+                if (statusText === "訓練" || statusText === "시험" || statusText === "Test" || statusText === "Training") {
+                    isTest = true;
+                    console.log("🛠️ 테스트용 속보 수신: UI를 점검 모드로 전환합니다.");
+                }
+            }
+
+            // ==========================================
+            // 🚨 UI 텍스트 및 색상 동적 변경
+            // ==========================================
+            const headerEl = document.getElementById('header');
+            const upperTitleStroke = document.querySelectorAll('.upper-box:nth-child(1) .u-title .layer-stroke')[0];
+            const upperTitleFill = document.querySelectorAll('.upper-box:nth-child(1) .u-title .layer-fill')[0];
+
+            if (isTest) {
+                headerEl.textContent = "점검용 테스트 입니다";
+                headerEl.style.backgroundColor = "#555555"; 
+                upperTitleStroke.textContent = "점검용 테스트";
+                upperTitleFill.textContent = "점검용 테스트";
+                upperTitleFill.classList.replace('c-yellow', 'c-white'); 
+            } else {
+                headerEl.textContent = "긴급지진속보(JMA)";
+                headerEl.style.backgroundColor = "#cc0000"; 
+                upperTitleStroke.textContent = "긴급지진속보";
+                upperTitleFill.textContent = "긴급지진속보";
+                upperTitleFill.classList.replace('c-white', 'c-yellow'); 
+            }
 
             eewContainer.classList.add('active');
             upperInfo.classList.add('active');
@@ -257,19 +317,19 @@
             mapGroup.selectAll(".epicenter-marker-group").remove(); 
             mapGroup.selectAll(".jma-region").classed("alert", false); 
 
-            const parser = new DOMParser();
-            const xml = parser.parseFromString(xmlString.replace(/(<\/?)[\w\-]+:/g, '$1'), "text/xml");
-
+            // 규모 추출
             const mag = xml.querySelector("Magnitude")?.textContent || "0.0";
             document.getElementById('mag-stroke').textContent = "M" + mag;
             document.getElementById('mag-fill').textContent = "M" + mag;
 
+            // 진원 깊이 추출
             const coordText = xml.querySelector("Coordinate")?.textContent || "";
             const depthMatch = coordText.match(/-(\d+)\//);
             const depthKm = depthMatch ? Math.abs(parseInt(depthMatch[1]) / 1000) : 10;
             document.getElementById('depth-stroke').textContent = depthKm + "km";
             document.getElementById('depth-fill').textContent = depthKm + "km";
 
+            // 진앙지 추출 및 번역
             const epiCodeNode = xml.querySelector("Hypocenter Area Code") || xml.querySelector("Hypocenter Code");
             const epiNameNode = xml.querySelector("Hypocenter Area Name") || xml.querySelector("Hypocenter Name");
 
@@ -287,6 +347,7 @@
 
             document.getElementById('epicenter-name').textContent = finalEpicenter;
 
+            // 지역 코드 추출
             let triggered = new Set();
             let features = [];
             
@@ -300,6 +361,7 @@
                 }
             });
 
+            // 지도 포커스 및 마커 생성
             if (features.length > 0 && baseGeoData) {
                 mapProjection.fitExtent([[30, 30], [240, 330]], { type: "FeatureCollection", features: features });
                 mapGroup.selectAll("path.jma-region").attr("d", mapPath);
@@ -328,15 +390,14 @@
             }
         }
 
-        // 🚨 6. 지역 코드 기반 텍스트 리스트 생성 (광역 우선 정렬)
+        // 6. 지역 코드 기반 텍스트 리스트 생성 (광역 우선 정렬)
         function updateRegionListUI(codes) {
-            let listRegions = []; // 1순위: 광역 단위 (지방)
-            let listPrefs = [];   // 2순위: 도도부현 단위 (현)
-            let listAreas = [];   // 3순위: 세부 구역 (시/군/구)
+            let listRegions = []; 
+            let listPrefs = [];   
+            let listAreas = [];   
             
             if(REGIONAL_HIERARCHY.length === 0) return; 
 
-            // 22.json 딕셔너리 기반 지역명 번역 헬퍼
             const getRegionName = (code, fallback) => {
                 if (REGION_DICT[code]) {
                     const m = REGION_DICT[code];
@@ -345,22 +406,21 @@
                 return fallback; 
             };
 
-            // 데이터를 우선 3개의 배열에 각각 나눠 담음
             REGIONAL_HIERARCHY.forEach(b => {
                 const all = b.prefs.flatMap(p => p.codes);
                 const match = all.filter(c => codes.has(c));
                 
                 if (match.length > 0) {
                     if (match.length === all.length || match.length >= 5) {
-                        listRegions.push(b.region); // 1순위: 광역 담기
+                        listRegions.push(b.region);
                     } else {
                         b.prefs.forEach(p => {
                             const mInP = p.codes.filter(c => codes.has(c));
                             if (mInP.length > 0) {
                                 if (mInP.length === p.codes.length) {
-                                    listPrefs.push(p.name); // 2순위: 도도부현 담기
+                                    listPrefs.push(p.name);
                                 } else {
-                                    mInP.forEach(c => listAreas.push(getRegionName(c, p.sub[c]))); // 3순위: 세부 구역 담기
+                                    mInP.forEach(c => listAreas.push(getRegionName(c, p.sub[c])));
                                 }
                             }
                         });
@@ -368,10 +428,7 @@
                 }
             });
 
-            // 🚨 광역 -> 현 -> 세부 구역 순서로 배열 합치기
             const finalSortedList = [...listRegions, ...listPrefs, ...listAreas];
-            
-            // 화면 출력
             document.getElementById('region-list').innerHTML = finalSortedList.map(r => `<span>${r}</span>`).join('');
         }
 
@@ -383,7 +440,7 @@
             const statusMsg = document.getElementById('map-status');
             if(statusMsg) statusMsg.style.display = "none";
             
-            mapGroup.selectAll("*").remove(); // 기존 지도 삭제
+            mapGroup.selectAll("*").remove(); 
             mapProjection = d3.geoIdentity().reflectY(true).fitExtent([[10, 10], [260, 350]], data);
             mapPath = d3.geoPath().projection(mapProjection);
             
@@ -392,7 +449,7 @@
         }
 
         // ==========================================
-        // 🚨 8. 안전한 이벤트 리스너 바인딩
+        // 8. 안전한 이벤트 리스너 바인딩
         // ==========================================
         document.getElementById('debug-trigger').addEventListener('click', function() {
             document.getElementById('debug-menu').classList.toggle('active');
