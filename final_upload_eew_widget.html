@@ -5,57 +5,30 @@
     <title>JMA EEW Widget - Ultimate Broadcast Version</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
-        /* ========================================= */
-        /* 1. 기본 폰트 및 배경 설정 (Noto Sans KR 유지) */
-        /* ========================================= */
+        /* [스타일 설정 - 기존과 동일] */
         body { margin: 0; padding: 0; width: 1920px; height: 1080px; background-color: transparent; overflow: hidden; font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; }
-        
-        /* ========================================= */
-        /* 2. 📺 상단 자막: 방송국식 레이어드 자막 기법 */
-        /* ========================================= */
-        #upper-info {
-            font-family: 'a견나루', 'Noto Sans KR', sans-serif; 
-            position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 120px; opacity: 0; z-index: 10;
-        }
+        #upper-info { font-family: 'a견나루', 'Noto Sans KR', sans-serif; position: absolute; top: 60px; left: 50%; transform: translateX(-50%); display: flex; gap: 120px; opacity: 0; z-index: 10; transition: opacity 1s; }
         #upper-info.active { opacity: 1; }
         .upper-box { text-align: left; font-weight: 200; line-height: 1.1; display: flex; flex-direction: column; gap: 8px; }
-        
         .text-stack { display: grid; align-items: center; }
         .layer-stroke, .layer-fill { grid-area: 1 / 1; } 
-        
         .layer-fill { z-index: 2; }
-        .layer-stroke { 
-            z-index: 1; color: #000; 
-            -webkit-text-stroke: 14px #000; 
-            text-shadow: 6px 8px 12px rgba(0,0,0,0.6); 
-        }
-        
+        .layer-stroke { z-index: 1; color: #000; -webkit-text-stroke: 14px #000; text-shadow: 6px 8px 12px rgba(0,0,0,0.6); }
         .u-title { font-size: 3.5rem; letter-spacing: -2px; }
         .u-content { font-size: 3rem; }
         .c-yellow { color: #ffff00; }
         .c-white { color: #ffffff; }
-
-        /* ========================================= */
-        /* 3. 🗺️ 하단 자막: 기존 디자인 및 지도 (가운데 정렬) */
-        /* ========================================= */
-        #eew-container { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); display: flex; width: 1100px; height: 360px; box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.4); border: 2px solid #666; opacity: 0;  background-color: rgba(0, 0, 0, 0.85); z-index: 5; }
+        #eew-container { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); display: flex; width: 1100px; height: 360px; box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.4); border: 2px solid #666; opacity: 0; background-color: rgba(0, 0, 0, 0.85); z-index: 5; transition: opacity 1s; }
         #eew-container.active { opacity: 1; }
         #map-pane { width: 270px; height: 360px; background-color: #002060; position: relative; overflow: hidden; border-right: 2px solid #666; flex-shrink: 0; }
         svg { width: 100%; height: 100%; }
-        
         .jma-region { fill: #757575; stroke: #444; stroke-width: 0.5px; }
         .jma-region.alert { fill: #FFFF00 !important; } 
-
         #info-pane { width: 830px; background-color: rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
         #header { background-color: #cc0000; color: white; text-align: center; font-size: 3rem; font-weight: 900; padding: 5px 0; letter-spacing: 5px; }
         #subheader { padding: 20px 40px 10px 40px; color: #ffff00; font-size: 1.6rem; font-weight: bold; }
         #region-list { margin: 0 40px 20px 40px; color: white; font-size: 2rem; font-weight: bold; line-height: 1.6; display: block; overflow-y: auto; height: 210px; word-break: keep-all; }
         #region-list span { display: inline-block; margin-right: 18px; margin-bottom: 8px; white-space: nowrap; }
-
-        /* ========================================= */
-        /* 4. 🛠️ 디버그 메뉴 */
-        /* ========================================= */
         #debug-trigger { position: absolute; top: 20px; right: 20px; width: 120px; height: 40px; background: #000; color: #fff; border: 1px solid #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; z-index: 9999; }
         #debug-menu { position: absolute; top: 70px; right: 20px; width: 400px; background: rgba(0,0,0,0.9); color: white; padding: 20px; display: none; border: 1px solid #777; z-index: 9998; }
         #debug-menu.active { display: block; }
@@ -69,24 +42,12 @@
 
     <div id="upper-info">
         <div class="upper-box">
-            <div class="text-stack u-title">
-                <div class="layer-stroke">긴급지진속보</div>
-                <div class="layer-fill c-yellow">긴급지진속보</div>
-            </div>
-            <div class="text-stack u-content">
-                <div class="layer-stroke">규모: <span id="mag-stroke">M0.0</span></div>
-                <div class="layer-fill c-white">규모: <span id="mag-fill">M0.0</span></div>
-            </div>
+            <div class="text-stack u-title"><div class="layer-stroke">긴급지진속보</div><div class="layer-fill c-yellow">긴급지진속보</div></div>
+            <div class="text-stack u-content"><div class="layer-stroke">규모: <span id="mag-stroke">M0.0</span></div><div class="layer-fill c-white">규모: <span id="mag-fill">M0.0</span></div></div>
         </div>
         <div class="upper-box">
-            <div class="text-stack u-title">
-                <div class="layer-stroke">강한 흔들림에 경계</div>
-                <div class="layer-fill c-yellow">강한 흔들림에 경계</div>
-            </div>
-            <div class="text-stack u-content">
-                <div class="layer-stroke">진원 깊이: <span id="depth-stroke">10km</span></div>
-                <div class="layer-fill c-white">진원 깊이: <span id="depth-fill">10km</span></div>
-            </div>
+            <div class="text-stack u-title"><div class="layer-stroke">강한 흔들림에 경계</div><div class="layer-fill c-yellow">강한 흔들림에 경계</div></div>
+            <div class="text-stack u-content"><div class="layer-stroke">진원 깊이: <span id="depth-stroke">10km</span></div><div class="layer-fill c-white">진원 깊이: <span id="depth-fill">10km</span></div></div>
         </div>
     </div>
 
@@ -120,11 +81,7 @@
     </div>
 
     <script>
-        // ==========================================
-        // 🚨 여기에 본인의 데이터(구글 URL, 지역정보)를 채워주세요!
-        // ==========================================
-       	const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbzPnfrVo-KliILY-YSogjcK6DqEg68vQcFeIsHl3KIdzegYmyc8nlFzpVH-wwTEYEplgw/exec";
-
+        const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbzPnfrVo-KliILY-YSogjcK6DqEg68vQcFeIsHl3KIdzegYmyc8nlFzpVH-wwTEYEplgw/exec";
         const REGIONAL_HIERARCHY = [
             { region: "홋카이도 지방", prefs: [ { name: "홋카이도", codes: ["9011", "9012", "9013", "9014"], sub: {"9011": "홋카이도 도오", "9012": "홋카이도 도남", "9013": "홋카이도 도북", "9014": "홋카이도 도동"} } ] },
             { region: "도호쿠 지방", prefs: [ { name: "아오모리현", codes: ["9020"], sub: {"9020": "아오모리현"} }, { name: "이와테현", codes: ["9030"], sub: {"9030": "이와테현"} }, { name: "미야기현", codes: ["9040"], sub: {"9040": "미야기현"} }, { name: "아키타현", codes: ["9050"], sub: {"9050": "아키타현"} }, { name: "야마가타현", codes: ["9060"], sub: {"9060": "야마가타현"} }, { name: "후쿠시마현", codes: ["9070"], sub: {"9070": "후쿠시마현"} } ] },
@@ -137,62 +94,45 @@
             { region: "오키나와 지방", prefs: [ { name: "오키나와현", codes: ["9471", "9472", "9473", "9474"], sub: {"9471": "오키나와 본도", "9472": "다이토지마", "9473": "미야코지마", "9474": "야에야마"} } ] }
         ];
 
-        // 시스템 전역 변수
         let activeWebSocket = null;
         let isIntentionalDisconnect = false;
         let baseGeoData = null;
-        
         let EPICENTER_DICT = {}; 
         let REGION_DICT = {};    
+        
+        // 🚨 자동 숨김용 타이머 변수
+        let hideTimer = null;
 
-        // DOM 요소 캐싱
         const wsStatusEl = document.getElementById('ws-status');
         const wsDotEl = document.getElementById('ws-dot');
         const eewContainer = document.getElementById('eew-container');
         const upperInfo = document.getElementById('upper-info');
         
-        // D3.js 맵 변수
         let mapProjection = d3.geoIdentity(); 
         let mapPath = d3.geoPath().projection(mapProjection);
         let mapSvg = null;
         let mapGroup = null;
 
-        // 1. 지도 초기화
         function initMap() {
             d3.select("#map-pane").select("svg").remove();
             mapSvg = d3.select("#map-pane").append("svg").attr("width", "100%").attr("height", "100%");
             mapGroup = mapSvg.append("g");
         }
         
-        // 깃허브에서 진앙지 및 지역명 동시 다운로드
         async function loadDictionaries() {
             try {
-                fetch('https://raw.githubusercontent.com/monggae0319/jma-lang-ko/main/src/data/earthquake/41.json')
-                    .then(res => res.json())
-                    .then(data => { EPICENTER_DICT = data; console.log("✅ 깃허브 진앙지(41.json) 로드 완료!"); })
-                    .catch(e => console.error("🚨 진앙지 JSON 로드 실패:", e));
-                
-                fetch('https://raw.githubusercontent.com/monggae0319/jma-lang-ko/main/src/data/earthquake/22.json')
-                    .then(res => res.json())
-                    .then(data => { REGION_DICT = data; console.log("✅ 깃허브 지역명(22.json) 로드 완료!"); })
-                    .catch(e => console.error("🚨 지역명 JSON 로드 실패:", e));
-            } catch (e) {
-                console.error("🚨 딕셔너리 로드 실패:", e);
-            }
+                fetch('https://raw.githubusercontent.com/monggae0319/jma-lang-ko/main/src/data/earthquake/41.json').then(res => res.json()).then(data => { EPICENTER_DICT = data; });
+                fetch('https://raw.githubusercontent.com/monggae0319/jma-lang-ko/main/src/data/earthquake/22.json').then(res => res.json()).then(data => { REGION_DICT = data; });
+            } catch (e) { console.error("딕셔너리 로드 실패", e); }
         }
 
-        window.addEventListener('load', () => {
-            initMap();
-            loadDictionaries(); 
-        });
+        window.addEventListener('load', () => { initMap(); loadDictionaries(); });
 
-        // 2. 통신 상태 업데이트
         function updateStatus(msg, isConnected) {
             wsStatusEl.textContent = msg;
             wsDotEl.className = isConnected ? 'status-dot connected' : 'status-dot';
         }
 
-        // 3. 구글 Apps Script 연동 (JSONP 우회)
         function requestViaGoogle(action, params = "") {
             return new Promise((res, rej) => {
                 const cb = 'jsonp_' + Date.now();
@@ -204,273 +144,181 @@
             });
         }
 
-        // 4. DMDATA 웹소켓 연결 (Data 수신 로직 추가 완료)
         async function connectWebSocket() {
             if (activeWebSocket) return;
             isIntentionalDisconnect = false;
             try {
-                updateStatus("구글 서버 인증 중...", false);
+                updateStatus("인증 티켓 발급 중...", false);
                 const d = await requestViaGoogle("getTicket");
                 if (!d || !d.ticket) throw new Error("티켓 발급 실패");
 
                 activeWebSocket = new WebSocket(`wss://ws.api.dmdata.jp/v2/websocket?ticket=${d.ticket}`, 'dmdata.v2');
-                
                 activeWebSocket.onopen = () => updateStatus("✅ DMDATA 연결됨", true);
-                
                 activeWebSocket.onclose = () => {
                     activeWebSocket = null;
-                    if (!isIntentionalDisconnect) {
-                        updateStatus("연결 끊김. 재시도 중...", false);
-                        setTimeout(connectWebSocket, 5000);
-                    } else {
-                        updateStatus("연결 해제됨", false);
-                    }
+                    if (!isIntentionalDisconnect) { updateStatus("연결 끊김. 재시도 중...", false); setTimeout(connectWebSocket, 5000); }
+                    else { updateStatus("연결 해제됨", false); }
                 };
                 
-                // 🚨 실전 속보 데이터 수신 로직
                 activeWebSocket.onmessage = (e) => {
                     const payload = JSON.parse(e.data);
+                    if (payload.type === 'ping') { activeWebSocket.send(JSON.stringify({ type: 'pong', pingId: payload.pingId })); return; }
                     
-                    if (payload.type === 'ping') {
-                        activeWebSocket.send(JSON.stringify({ type: 'pong', pingId: payload.pingId }));
-                        return;
-                    }
-                    
-                    if (payload.type === 'data' && payload.classification === 'eew.forecast') {
+                    // 🚨 eew.forecast와 eew.warning 모두 수신 허용
+                    if (payload.type === 'data' && (payload.classification === 'eew.forecast' || payload.classification === 'eew.warning')) {
                         try {
                             let xmlContent = "";
-                            
-                            if (payload.encoding === 'base64') {
-                                xmlContent = decodeURIComponent(escape(atob(payload.body)));
-                            } else {
-                                xmlContent = payload.body;
-                            }
-                            
-                            if (typeof xmlContent === 'string') {
-                                processEarthquakeData(xmlContent);
-                            }
-                        } catch (err) {
-                            console.error("XML 데이터 디코딩 중 오류 발생:", err);
-                        }
+                            if (payload.encoding === 'base64') { xmlContent = decodeURIComponent(escape(atob(payload.body))); }
+                            else { xmlContent = payload.body; }
+                            if (typeof xmlContent === 'string') { processEarthquakeData(xmlContent); }
+                        } catch (err) { console.error("디코딩 오류", err); }
                     }
                 };
-            } catch (e) { 
-                updateStatus("🚨 오류: " + e.message, false); 
-                setTimeout(connectWebSocket, 10000); 
-            }
+            } catch (e) { updateStatus("🚨 오류: " + e.message, false); setTimeout(connectWebSocket, 10000); }
         }
 
-        function disconnectWebSocket() {
-            isIntentionalDisconnect = true;
-            if (activeWebSocket) activeWebSocket.close();
-        }
+        function disconnectWebSocket() { isIntentionalDisconnect = true; if (activeWebSocket) activeWebSocket.close(); }
 
         function hideWidgets() {
             eewContainer.classList.remove('active');
             upperInfo.classList.remove('active');
+            // 타이머가 작동하여 숨겨진 경우 변수 초기화
+            if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
         }
 
-        // 5. 지진 데이터 파싱 및 UI 업데이트 (테스트/훈련 구별 로직 추가 완료)
         function processEarthquakeData(xmlString) {
             if (!xmlString) return;
 
             const parser = new DOMParser();
             const xml = parser.parseFromString(xmlString.replace(/(<\/?)[\w\-]+:/g, '$1'), "text/xml");
 
-            // ==========================================
-            // 🚨 테스트/훈련 상태(Status) 확인
-            // ==========================================
+            // 테스트/훈련 상태 확인
             let isTest = false;
             const statusNode = xml.querySelector("Status");
             if (statusNode) {
                 const statusText = statusNode.textContent.trim();
-                if (statusText === "訓練" || statusText === "시험" || statusText === "Test" || statusText === "Training") {
-                    isTest = true;
-                    console.log("🛠️ 테스트용 속보 수신: UI를 점검 모드로 전환합니다.");
-                }
+                if (statusText === "훈련" || statusText === "시험" || statusText === "Test" || statusText === "Training" || statusText === "訓練") { isTest = true; }
             }
 
-            // ==========================================
-            // 🚨 UI 텍스트 및 색상 동적 변경
-            // ==========================================
+            // UI 텍스트 및 색상 설정
             const headerEl = document.getElementById('header');
-            const upperTitleStroke = document.querySelectorAll('.upper-box:nth-child(1) .u-title .layer-stroke')[0];
-            const upperTitleFill = document.querySelectorAll('.upper-box:nth-child(1) .u-title .layer-fill')[0];
+            const upperStroke = document.querySelectorAll('.upper-box:nth-child(1) .u-title .layer-stroke')[0];
+            const upperFill = document.querySelectorAll('.upper-box:nth-child(1) .u-title .layer-fill')[0];
 
             if (isTest) {
-                headerEl.textContent = "점검용 테스트 입니다";
-                headerEl.style.backgroundColor = "#555555"; 
-                upperTitleStroke.textContent = "점검용 테스트";
-                upperTitleFill.textContent = "점검용 테스트";
-                upperTitleFill.classList.replace('c-yellow', 'c-white'); 
+                headerEl.textContent = "점검용 테스트 입니다"; headerEl.style.backgroundColor = "#555555";
+                upperStroke.textContent = "점검용 테스트"; upperFill.textContent = "점검용 테스트";
+                upperFill.classList.replace('c-yellow', 'c-white');
             } else {
-                headerEl.textContent = "긴급지진속보(JMA)";
-                headerEl.style.backgroundColor = "#cc0000"; 
-                upperTitleStroke.textContent = "긴급지진속보";
-                upperTitleFill.textContent = "긴급지진속보";
-                upperTitleFill.classList.replace('c-white', 'c-yellow'); 
+                headerEl.textContent = "긴급지진속보(JMA)"; headerEl.style.backgroundColor = "#cc0000";
+                upperStroke.textContent = "긴급지진속보"; upperFill.textContent = "긴급지진속보";
+                upperFill.classList.replace('c-white', 'c-yellow');
             }
 
             eewContainer.classList.add('active');
             upperInfo.classList.add('active');
             
+            // 🚨 5분 자동 숨김 로직 추가
+            if (hideTimer) clearTimeout(hideTimer); // 기존 타이머 취소 (새 데이터 오면 시간 리셋)
+            hideTimer = setTimeout(() => {
+                hideWidgets();
+                console.log("5분이 경과하여 위젯을 자동으로 숨겼습니다.");
+            }, 300000); // 300,000ms = 5분
+
             mapGroup.selectAll(".epicenter-marker-group").remove(); 
             mapGroup.selectAll(".jma-region").classed("alert", false); 
 
-            // 규모 추출
+            // 데이터 추출 및 렌더링 (규모, 깊이, 진앙지, 지도 등 - 기존 유지)
             const mag = xml.querySelector("Magnitude")?.textContent || "0.0";
             document.getElementById('mag-stroke').textContent = "M" + mag;
             document.getElementById('mag-fill').textContent = "M" + mag;
 
-            // 진원 깊이 추출
             const coordText = xml.querySelector("Coordinate")?.textContent || "";
             const depthMatch = coordText.match(/-(\d+)\//);
             const depthKm = depthMatch ? Math.abs(parseInt(depthMatch[1]) / 1000) : 10;
             document.getElementById('depth-stroke').textContent = depthKm + "km";
             document.getElementById('depth-fill').textContent = depthKm + "km";
 
-            // 진앙지 추출 및 번역
             const epiCodeNode = xml.querySelector("Hypocenter Area Code") || xml.querySelector("Hypocenter Code");
             const epiNameNode = xml.querySelector("Hypocenter Area Name") || xml.querySelector("Hypocenter Name");
-
             let finalEpicenter = "분석 중";
             let needsTranslation = false;
-
             if (epiCodeNode && EPICENTER_DICT[epiCodeNode.textContent]) {
                 const matched = EPICENTER_DICT[epiCodeNode.textContent];
                 finalEpicenter = typeof matched === 'string' ? matched : (matched.ko || matched.name || matched);
-            } 
-            else if (epiNameNode) {
-                finalEpicenter = epiNameNode.textContent;
-                needsTranslation = true;
-            }
-
+            } else if (epiNameNode) { finalEpicenter = epiNameNode.textContent; needsTranslation = true; }
             document.getElementById('epicenter-name').textContent = finalEpicenter;
 
-            // 지역 코드 추출
             let triggered = new Set();
             let features = [];
-            
             xml.querySelectorAll("Code").forEach(n => {
                 const code = n.textContent.trim();
                 const sel = d3.select("#region-" + code);
-                if (!sel.empty()) {
-                    sel.classed("alert", true);
-                    triggered.add(code);
-                    features.push(sel.datum());
-                }
+                if (!sel.empty()) { sel.classed("alert", true); triggered.add(code); features.push(sel.datum()); }
             });
 
-            // 지도 포커스 및 마커 생성
             if (features.length > 0 && baseGeoData) {
                 mapProjection.fitExtent([[30, 30], [240, 330]], { type: "FeatureCollection", features: features });
                 mapGroup.selectAll("path.jma-region").attr("d", mapPath);
-                
                 const epicenterMatch = coordText.match(/([+-]\d+(?:\.\d+)?)([+-]\d+(?:\.\d+)?)/);
                 if (epicenterMatch) {
                     const coords = [parseFloat(epicenterMatch[2]), parseFloat(epicenterMatch[1])];
                     const markerGroup = mapGroup.append("g").attr("class", "epicenter-marker-group");
-                    
-                    markerGroup.append("text").attr("text-anchor", "middle").attr("dominant-baseline", "central")
-                        .style("fill", "none").style("stroke", "white").style("stroke-width", "3px").style("font-size", "40px").style("font-weight", "900")
-                        .text("✕").attr("x", mapProjection(coords)[0]).attr("y", mapProjection(coords)[1]);
-                    
-                    markerGroup.append("text").attr("text-anchor", "middle").attr("dominant-baseline", "central")
-                        .style("fill", "red").style("stroke", "none").style("font-size", "40px").style("font-weight", "900")
-                        .text("✕").attr("x", mapProjection(coords)[0]).attr("y", mapProjection(coords)[1]);
+                    markerGroup.append("text").attr("text-anchor", "middle").attr("dominant-baseline", "central").style("fill", "none").style("stroke", "white").style("stroke-width", "3px").style("font-size", "40px").style("font-weight", "900").text("✕").attr("x", mapProjection(coords)[0]).attr("y", mapProjection(coords)[1]);
+                    markerGroup.append("text").attr("text-anchor", "middle").attr("dominant-baseline", "central").style("fill", "red").style("stroke", "none").style("font-size", "40px").style("font-weight", "900").text("✕").attr("x", mapProjection(coords)[0]).attr("y", mapProjection(coords)[1]);
                 }
             }
-
             updateRegionListUI(triggered);
-
             if (needsTranslation && finalEpicenter !== "분석 중") {
-                requestViaGoogle("translate", `&text=${encodeURIComponent(finalEpicenter)}`)
-                    .then(d => { if (d && d.translated) document.getElementById('epicenter-name').textContent = d.translated; })
-                    .catch(err => console.error("번역 에러:", err));
+                requestViaGoogle("translate", `&text=${encodeURIComponent(finalEpicenter)}`).then(d => { if (d && d.translated) document.getElementById('epicenter-name').textContent = d.translated; });
             }
         }
 
-        // 6. 지역 코드 기반 텍스트 리스트 생성 (광역 우선 정렬)
         function updateRegionListUI(codes) {
-            let listRegions = []; 
-            let listPrefs = [];   
-            let listAreas = [];   
-            
+            let listRegions = [], listPrefs = [], listAreas = [];
             if(REGIONAL_HIERARCHY.length === 0) return; 
-
             const getRegionName = (code, fallback) => {
-                if (REGION_DICT[code]) {
-                    const m = REGION_DICT[code];
-                    return typeof m === 'string' ? m : (m.ko || m.name || m);
-                }
+                if (REGION_DICT[code]) { const m = REGION_DICT[code]; return typeof m === 'string' ? m : (m.ko || m.name || m); }
                 return fallback; 
             };
-
             REGIONAL_HIERARCHY.forEach(b => {
                 const all = b.prefs.flatMap(p => p.codes);
                 const match = all.filter(c => codes.has(c));
-                
                 if (match.length > 0) {
-                    if (match.length === all.length || match.length >= 5) {
-                        listRegions.push(b.region);
-                    } else {
-                        b.prefs.forEach(p => {
+                    if (match.length === all.length || match.length >= 5) { listRegions.push(b.region); } 
+                    else { b.prefs.forEach(p => {
                             const mInP = p.codes.filter(c => codes.has(c));
                             if (mInP.length > 0) {
-                                if (mInP.length === p.codes.length) {
-                                    listPrefs.push(p.name);
-                                } else {
-                                    mInP.forEach(c => listAreas.push(getRegionName(c, p.sub[c])));
-                                }
+                                if (mInP.length === p.codes.length) { listPrefs.push(p.name); } 
+                                else { mInP.forEach(c => listAreas.push(getRegionName(c, p.sub[c]))); }
                             }
                         });
                     }
                 }
             });
-
             const finalSortedList = [...listRegions, ...listPrefs, ...listAreas];
             document.getElementById('region-list').innerHTML = finalSortedList.map(r => `<span>${r}</span>`).join('');
         }
 
-        // 7. 지도 GeoJSON 렌더링
         function renderMap(data) {
-            if(!data) return;
-            baseGeoData = data;
-            
+            if(!data) return; baseGeoData = data;
             const statusMsg = document.getElementById('map-status');
             if(statusMsg) statusMsg.style.display = "none";
-            
             mapGroup.selectAll("*").remove(); 
             mapProjection = d3.geoIdentity().reflectY(true).fitExtent([[10, 10], [260, 350]], data);
             mapPath = d3.geoPath().projection(mapProjection);
-            
-            mapGroup.selectAll("path").data(data.features).enter().append("path")
-                .attr("d", mapPath).attr("class", "jma-region").attr("id", d => "region-" + (d.properties.code || d.properties.id));
+            mapGroup.selectAll("path").data(data.features).enter().append("path").attr("d", mapPath).attr("class", "jma-region").attr("id", d => "region-" + (d.properties.code || d.properties.id));
         }
 
-        // ==========================================
-        // 8. 안전한 이벤트 리스너 바인딩
-        // ==========================================
-        document.getElementById('debug-trigger').addEventListener('click', function() {
-            document.getElementById('debug-menu').classList.toggle('active');
-        });
-
+        document.getElementById('debug-trigger').addEventListener('click', () => { document.getElementById('debug-menu').classList.toggle('active'); });
         document.getElementById('btn-connect').addEventListener('click', connectWebSocket);
         document.getElementById('btn-disconnect').addEventListener('click', disconnectWebSocket);
         document.getElementById('btn-hide').addEventListener('click', hideWidgets);
-
-        document.getElementById('btn-inject').addEventListener('click', function() {
-            processEarthquakeData(document.getElementById('xml-input').value);
-        });
-
-        document.getElementById('map-loader').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if(!file) return;
+        document.getElementById('btn-inject').addEventListener('click', () => { processEarthquakeData(document.getElementById('xml-input').value); });
+        document.getElementById('map-loader').addEventListener('change', (e) => {
+            const file = e.target.files[0]; if(!file) return;
             const reader = new FileReader();
-            reader.onload = (ev) => {
-                try { renderMap(JSON.parse(ev.target.result)); }
-                catch(err) { alert("올바른 GeoJSON 형식이 아닙니다."); }
-            };
+            reader.onload = (ev) => { try { renderMap(JSON.parse(ev.target.result)); } catch(err) { alert("올바른 GeoJSON 형식이 아닙니다."); } };
             reader.readAsText(file);
         });
     </script>
