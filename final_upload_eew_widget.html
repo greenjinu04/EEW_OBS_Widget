@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>JMA EEW Widget - Ultimate Broadcast Version</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <style>
         /* [스타일 설정 - 기존과 동일] */
         body { margin: 0; padding: 0; width: 1920px; height: 1080px; background-color: transparent; overflow: hidden; font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; }
@@ -162,16 +164,47 @@
                 
                 activeWebSocket.onmessage = (e) => {
                     const payload = JSON.parse(e.data);
-                    if (payload.type === 'ping') { activeWebSocket.send(JSON.stringify({ type: 'pong', pingId: payload.pingId })); return; }
+                    if (payload.type === 'ping') { 
+                        activeWebSocket.send(JSON.stringify({ type: 'pong', pingId: payload.pingId })); 
+                        return; 
+                    }
                     
-                    // 🚨 eew.forecast와 eew.warning 모두 수신 허용
+                    // eew.forecast와 eew.warning 모두 수신 허용
                     if (payload.type === 'data' && (payload.classification === 'eew.forecast' || payload.classification === 'eew.warning')) {
                         try {
                             let xmlContent = "";
-                            if (payload.encoding === 'base64') { xmlContent = decodeURIComponent(escape(atob(payload.body))); }
-                            else { xmlContent = payload.body; }
-                            if (typeof xmlContent === 'string') { processEarthquakeData(xmlContent); }
-                        } catch (err) { console.error("디코딩 오류", err); }
+                            
+                            // 🚨 Base64 및 Gzip 압축 해제 로직
+                            if (payload.encoding === 'base64') {
+                                // 1. Base64 텍스트를 바이너리 데이터로 변환
+                                const binaryString = atob(payload.body);
+                                const len = binaryString.length;
+                                const bytes = new Uint8Array(len);
+                                for (let i = 0; i < len; i++) {
+                                    bytes[i] = binaryString.charCodeAt(i);
+                                }
+                                
+                                // 2. 압축 방식이 gzip인 경우 pako 라이브러리로 압축 해제
+                                if (payload.compression === 'gzip') {
+                                    const decompressed = pako.inflate(bytes);
+                                    const decoder = new TextDecoder('utf-8');
+                                    xmlContent = decoder.decode(decompressed);
+                                } else {
+                                    // 압축이 없는 일반 base64인 경우
+                                    const decoder = new TextDecoder('utf-8');
+                                    xmlContent = decoder.decode(bytes);
+                                }
+                            } else {
+                                xmlContent = payload.body;
+                            }
+                            
+                            // 3. 압축이 예쁘게 풀린 정상 XML을 파싱 함수로 전달!
+                            if (typeof xmlContent === 'string' && xmlContent.trim().length > 0) { 
+                                processEarthquakeData(xmlContent); 
+                            }
+                        } catch (err) { 
+                            console.error("🚨 데이터 압축 해제 및 디코딩 오류:", err); 
+                        }
                     }
                 };
             } catch (e) { updateStatus("🚨 오류: " + e.message, false); setTimeout(connectWebSocket, 10000); }
