@@ -170,7 +170,7 @@
                     }
                     
                     // eew.forecast와 eew.warning 모두 수신 허용
-                    if (payload.type === 'data' && (payload.classification === 'eew.forecast' || payload.classification === 'eew.warning')) {
+                    if (payload.type === 'data' && (payload.classification === 'eew.warning')) {
                         try {
                             let xmlContent = "";
                             
