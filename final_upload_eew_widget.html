@@ -225,6 +225,27 @@
             const parser = new DOMParser();
             const xml = parser.parseFromString(xmlString.replace(/(<\/?)[\w\-]+:/g, '$1'), "text/xml");
 
+                // 🚨 2. 취소(取消) 전문 확인 및 처리 로직
+            const infoTypeNode = xml.querySelector("InfoType");
+            const isCancel = infoTypeNode && infoTypeNode.textContent.trim() === "取消";
+
+            if (isCancel) {
+                // 취소 안내 UI로 변경
+                headerEl.textContent = "긴급지진속보 (취소)"; 
+                headerEl.style.backgroundColor = "#555555"; 
+
+                // 에픽센터 및 지역 리스트 영역에 취소 안내 메시지 출력
+                document.getElementById('subheader').innerHTML = "<span id='epicenter-name' style='color:#ff4444;'>일본 기상청은, 이번 긴급지진속보를 취소했습니다.</span>";
+                document.getElementById('region-list').innerHTML = ""; 
+
+                // 지도 마커 및 경고 색상 초기화
+                mapGroup.selectAll(".epicenter-marker-group").remove(); 
+                mapGroup.selectAll(".jma-region").classed("alert", false);
+        
+                // 취소 전문이므로 여기서 함수 종료
+                return; 
+            }
+
             // 테스트/훈련 상태 확인
             let isTest = false;
             const statusNode = xml.querySelector("Status");
