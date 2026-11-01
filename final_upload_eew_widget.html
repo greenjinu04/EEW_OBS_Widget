@@ -238,7 +238,13 @@
                 document.getElementById('region-list').innerHTML = ""; 
                 mapGroup.selectAll(".epicenter-marker-group").remove(); 
                 mapGroup.selectAll(".jma-region").classed("alert", false);
-                return; 
+
+                // 👉 [수정됨] 취소보일 때도 화면에 위젯을 띄우고 5분 타이머를 갱신하도록 위치 수정
+                eewContainer.classList.add('active');
+                if (hideTimer) clearTimeout(hideTimer);
+                hideTimer = setTimeout(() => { hideWidgets(); }, 120000); 
+                
+                return;
             }
         
             // 🚨 2. 진도 기반 자체 필터링 (예상 최대 진도 5약 미만 차단)
