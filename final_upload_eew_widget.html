@@ -221,88 +221,88 @@
 
         function processEarthquakeData(xmlString) {
             if (!xmlString) return;
-
+        
             const parser = new DOMParser();
             const xml = parser.parseFromString(xmlString.replace(/(<\/?)[\w\-]+:/g, '$1'), "text/xml");
-
-                // 🚨 2. 취소(取消) 전문 확인 및 처리 로직
+        
+            const headerEl = document.getElementById('header');
+        
+            // 🚨 1. 취소(取消) 전문 확인 및 처리
             const infoTypeNode = xml.querySelector("InfoType");
             const isCancel = infoTypeNode && infoTypeNode.textContent.trim() === "取消";
-
+        
             if (isCancel) {
-                // 취소 안내 UI로 변경
                 headerEl.textContent = "긴급지진속보 (취소)"; 
                 headerEl.style.backgroundColor = "#555555"; 
-
-                // 에픽센터 및 지역 리스트 영역에 취소 안내 메시지 출력
-                document.getElementById('subheader').innerHTML = "<span id='epicenter-name' style='color:#ff4444;'>일본 기상청은, 이번 긴급지진속보를 취소했습니다.</span>";
+                document.getElementById('subheader').innerHTML = "<span id='epicenter-name' style='color:#ff4444;'>오보 또는 시스템 정정에 의해 발령이 취소되었습니다.</span>";
                 document.getElementById('region-list').innerHTML = ""; 
-
-                // 지도 마커 및 경고 색상 초기화
                 mapGroup.selectAll(".epicenter-marker-group").remove(); 
                 mapGroup.selectAll(".jma-region").classed("alert", false);
-        
-                // 취소 전문이므로 여기서 함수 종료
                 return; 
             }
-
-            // 테스트/훈련 상태 확인
+        
+            // 🚨 2. 진도 기반 자체 필터링 (예상 최대 진도 5약 미만 차단)
+            // JMA XML에서 <MaxInt> 안의 <From> 값(예상 최대 진도 하한선)을 추출합니다.
+            const maxIntNode = xml.querySelector("MaxInt > From") || xml.querySelector("MaxInt");
+            if (maxIntNode) {
+                const maxInt = maxIntNode.textContent.trim();
+                // 화면에 띄우지 않고 무시할 진도 목록 (0 ~ 4)
+                const ignoreIntensities = ["0", "1", "2", "3", "4"]; 
+                
+                if (ignoreIntensities.includes(maxInt)) {
+                    // 이전에 추가한 화면 로그 UI에 필터링 기록이 남습니다. (디버그 메뉴에서 확인 가능)
+                    console.log(`[필터링] 예상 최대 진도 '${maxInt}'의 속보 수신됨. (기준치 미달로 화면에 표시하지 않음)`);
+                    
+                    // 👉 여기서 return으로 함수를 종료해 버리기 때문에 위젯이 화면에 나타나지 않습니다!
+                    return; 
+                }
+            }
+        
+            // 3. 하단 위젯 활성화 및 5분 자동 숨김 타이머 (필터를 통과한 경우에만 켜짐)
+            eewContainer.classList.add('active');
+            
+            if (hideTimer) clearTimeout(hideTimer);
+            hideTimer = setTimeout(() => { hideWidgets(); }, 300000); 
+        
+            // 4. 테스트/훈련 상태 확인
             let isTest = false;
             const statusNode = xml.querySelector("Status");
             if (statusNode) {
                 const statusText = statusNode.textContent.trim();
                 if (statusText === "훈련" || statusText === "시험" || statusText === "Test" || statusText === "Training" || statusText === "訓練") { isTest = true; }
             }
-
-            // UI 텍스트 및 색상 설정
-            const headerEl = document.getElementById('header');
-            const upperStroke = document.querySelectorAll('.upper-box:nth-child(1) .u-title .layer-stroke')[0];
-            const upperFill = document.querySelectorAll('.upper-box:nth-child(1) .u-title .layer-fill')[0];
-
+        
             if (isTest) {
-                headerEl.textContent = "점검용 테스트 입니다"; headerEl.style.backgroundColor = "#555555";
-                upperStroke.textContent = "점검용 테스트"; upperFill.textContent = "점검용 테스트";
-                upperFill.classList.replace('c-yellow', 'c-white');
+                headerEl.textContent = "점검용 테스트 입니다"; 
+                headerEl.style.backgroundColor = "#555555";
             } else {
-                headerEl.textContent = "긴급지진속보(JMA)"; headerEl.style.backgroundColor = "#cc0000";
-                upperStroke.textContent = "긴급지진속보"; upperFill.textContent = "긴급지진속보";
-                upperFill.classList.replace('c-white', 'c-yellow');
+                headerEl.textContent = "긴급지진속보(JMA)"; 
+                headerEl.style.backgroundColor = "#cc0000";
             }
-
-            eewContainer.classList.add('active');
-            upperInfo.classList.add('active');
-            
-            // 🚨 5분 자동 숨김 로직 추가
-            if (hideTimer) clearTimeout(hideTimer); // 기존 타이머 취소 (새 데이터 오면 시간 리셋)
-            hideTimer = setTimeout(() => {
-                hideWidgets();
-                console.log("5분이 경과하여 위젯을 자동으로 숨겼습니다.");
-            }, 300000); // 300,000ms = 5분
-
+        
+            // 5. subheader 구조 복구
+            document.getElementById('subheader').innerHTML = "<span id='epicenter-name'>분석 중...</span>에서 지진 발생, 강한 흔들림에 주의";
+        
             mapGroup.selectAll(".epicenter-marker-group").remove(); 
             mapGroup.selectAll(".jma-region").classed("alert", false); 
-
-            // 데이터 추출 및 렌더링 (규모, 깊이, 진앙지, 지도 등 - 기존 유지)
-            const mag = xml.querySelector("Magnitude")?.textContent || "0.0";
-            document.getElementById('mag-stroke').textContent = "M" + mag;
-            document.getElementById('mag-fill').textContent = "M" + mag;
-
+        
+            // 6. 진앙지 파싱 및 번역
             const coordText = xml.querySelector("Coordinate")?.textContent || "";
-            const depthMatch = coordText.match(/-(\d+)\//);
-            const depthKm = depthMatch ? Math.abs(parseInt(depthMatch[1]) / 1000) : 10;
-            document.getElementById('depth-stroke').textContent = depthKm + "km";
-            document.getElementById('depth-fill').textContent = depthKm + "km";
-
             const epiCodeNode = xml.querySelector("Hypocenter Area Code") || xml.querySelector("Hypocenter Code");
             const epiNameNode = xml.querySelector("Hypocenter Area Name") || xml.querySelector("Hypocenter Name");
             let finalEpicenter = "분석 중";
             let needsTranslation = false;
+            
             if (epiCodeNode && EPICENTER_DICT[epiCodeNode.textContent]) {
                 const matched = EPICENTER_DICT[epiCodeNode.textContent];
                 finalEpicenter = typeof matched === 'string' ? matched : (matched.ko || matched.name || matched);
-            } else if (epiNameNode) { finalEpicenter = epiNameNode.textContent; needsTranslation = true; }
+            } else if (epiNameNode) { 
+                finalEpicenter = epiNameNode.textContent; 
+                needsTranslation = true; 
+            }
             document.getElementById('epicenter-name').textContent = finalEpicenter;
-
+        
+            // 7. 지역 발령 지도 표시
             let triggered = new Set();
             let features = [];
             xml.querySelectorAll("Code").forEach(n => {
@@ -310,10 +310,11 @@
                 const sel = d3.select("#region-" + code);
                 if (!sel.empty()) { sel.classed("alert", true); triggered.add(code); features.push(sel.datum()); }
             });
-
+        
             if (features.length > 0 && baseGeoData) {
                 mapProjection.fitExtent([[30, 30], [240, 330]], { type: "FeatureCollection", features: features });
                 mapGroup.selectAll("path.jma-region").attr("d", mapPath);
+                
                 const epicenterMatch = coordText.match(/([+-]\d+(?:\.\d+)?)([+-]\d+(?:\.\d+)?)/);
                 if (epicenterMatch) {
                     const coords = [parseFloat(epicenterMatch[2]), parseFloat(epicenterMatch[1])];
@@ -322,12 +323,16 @@
                     markerGroup.append("text").attr("text-anchor", "middle").attr("dominant-baseline", "central").style("fill", "red").style("stroke", "none").style("font-size", "40px").style("font-weight", "900").text("✕").attr("x", mapProjection(coords)[0]).attr("y", mapProjection(coords)[1]);
                 }
             }
+            
             updateRegionListUI(triggered);
+        
             if (needsTranslation && finalEpicenter !== "분석 중") {
-                requestViaGoogle("translate", `&text=${encodeURIComponent(finalEpicenter)}`).then(d => { if (d && d.translated) document.getElementById('epicenter-name').textContent = d.translated; });
+                requestViaGoogle("translate", `&text=${encodeURIComponent(finalEpicenter)}`).then(d => { 
+                    if (d && d.translated) document.getElementById('epicenter-name').textContent = d.translated; 
+                });
             }
         }
-
+        
         function updateRegionListUI(codes) {
             let listRegions = [], listPrefs = [], listAreas = [];
             if(REGIONAL_HIERARCHY.length === 0) return; 
