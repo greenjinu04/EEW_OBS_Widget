@@ -232,10 +232,10 @@
             const isCancel = infoTypeNode && infoTypeNode.textContent.trim() === "取消";
         
             if (isCancel) {
-                headerEl.textContent = "긴급지진속보 (취소)"; 
+                headerEl.textContent = ""; 
                 headerEl.style.backgroundColor = "#555555"; 
-                document.getElementById('subheader').innerHTML = "<span id='epicenter-name' style='color:#ff4444;'>오보 또는 시스템 정정에 의해 발령이 취소되었습니다.</span>";
-                document.getElementById('region-list').innerHTML = ""; 
+                document.getElementById('subheader').innerHTML = "";
+                document.getElementById('region-list').innerHTML = "<div style='color:#ff4444; font-weight:bold; font-size:1.1em; padding-top:10px;'>일본 기상청은, 이번 긴급지진속보의 발령을 취소했습니다.</div>"; 
                 mapGroup.selectAll(".epicenter-marker-group").remove(); 
                 mapGroup.selectAll(".jma-region").classed("alert", false);
 
