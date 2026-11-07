@@ -247,19 +247,33 @@
                 return;
             }
         
-            // 🚨 2. 진도 기반 자체 필터링 (예상 최대 진도 5약 미만 차단)
-            // JMA XML에서 <MaxInt> 안의 <From> 값(예상 최대 진도 하한선)을 추출합니다.
-            const maxIntNode = xml.querySelector("MaxInt > From") || xml.querySelector("MaxInt");
-            if (maxIntNode) {
-                const maxInt = maxIntNode.textContent.trim();
-                // 화면에 띄우지 않고 무시할 진도 목록 (0 ~ 4)
-                const ignoreIntensities = ["0", "1", "2", "3", "4"]; 
+            // 🚨 2. 진도 기반 자체 필터링 (예상 최대 진도 4 이하 차단)
+            // JMA XML은 EEW에서 <MaxInt> 대신 <ForecastInt> 태그를 사용하며, 여러 개가 존재할 수 있습니다.
+            const intensityNodes = xml.querySelectorAll("ForecastInt > From, MaxInt > From");
+            
+            if (intensityNodes.length > 0) {
+                let maxIntLevel = -1; 
                 
-                if (ignoreIntensities.includes(maxInt)) {
-                    // 이전에 추가한 화면 로그 UI에 필터링 기록이 남습니다. (디버그 메뉴에서 확인 가능)
-                    console.log(`[필터링] 예상 최대 진도 '${maxInt}'의 속보 수신됨. (기준치 미달로 화면에 표시하지 않음)`);
-                    
-                    // 👉 여기서 return으로 함수를 종료해 버리기 때문에 위젯이 화면에 나타나지 않습니다!
+                // JMA 진도 계급을 비교 가능한 숫자 크기로 변환하는 매핑 객체
+                const shindoMap = {
+                    "0": 0, "1": 1, "2": 2, "3": 3, "4": 4,
+                    "5-": 5, "5약": 5, "5+": 6, "5강": 6,
+                    "6-": 7, "6약": 7, "6+": 8, "6강": 8,
+                    "7": 9, "不明": -1
+                };
+
+                // 모든 지역의 진도를 순회하며 가장 강력한 진도값을 찾음
+                intensityNodes.forEach(node => {
+                    const intStr = node.textContent.trim();
+                    const level = shindoMap[intStr] !== undefined ? shindoMap[intStr] : -1;
+                    if (level > maxIntLevel) {
+                        maxIntLevel = level;
+                    }
+                });
+
+                // 판별된 가장 높은 진도가 4 이하일 경우 필터링 작동 (위젯 실행 중단)
+                if (maxIntLevel >= 0 && maxIntLevel <= 4) {
+                    console.log(`[필터링 작동] 예상 최대 진도가 4 이하입니다. (위젯을 띄우지 않음)`);
                     return; 
                 }
             }
