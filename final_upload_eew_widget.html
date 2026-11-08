@@ -294,7 +294,8 @@
         
             if (isTest) {
                 headerEl.textContent = "점검용 테스트 입니다"; 
-                document.getElementById('region-list').innerHTML = "<div style='color:#ffffff; font-weight:bold; font-size:1.1em; padding-top:10px;'>이 테스트는 정기적으로 시행되며,<br>지진속보 표시 시스템의 정상 작동을<br>확인하기 위해 시행합니다.</div>"; 
+                document.getElementById('region-list').innerHTML = "<div style='color:#ffffff; font-weight:bold; font-size:1.1em; padding-top:10px;'>이 테스트는 정기적으로 시행되며,<br>지진속보 표시 시스템의 정상 작동을<br>확인하기 위해 시행합니다.</div>";
+                mapGroup.selectAll(".jma-region").classed("alert", false);
                 headerEl.style.backgroundColor = "#555555";
 
                 eewContainer.classList.add('active');
